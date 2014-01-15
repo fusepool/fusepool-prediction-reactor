@@ -1,6 +1,7 @@
 package com.xerox.probe5_5;
 
 import com.xerox.services.LUPEngine;
+import java.util.HashMap;
 
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.UriRef;
@@ -44,7 +45,7 @@ public class LUP55 implements LUPEngine
     }
 
     public String getName() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return "LUP55";
     }
     
     public String getDescription() {
@@ -78,6 +79,14 @@ public class LUP55 implements LUPEngine
     public void load() {}
     
     public String predict(String param) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    public void updateModels(HashMap<String, String> params) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    public String predict(HashMap<String, String> params) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

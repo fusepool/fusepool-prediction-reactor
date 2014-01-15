@@ -29,6 +29,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.slf4j.LoggerFactory;
 
 /**
  * The goal of this 3.4 LUP Module is to listen to label annotations and to ask
@@ -43,7 +44,12 @@ import org.apache.felix.scr.annotations.Service;
 @Service
 public class LUP34 implements LUPEngine
 {
-
+    
+    /**
+     * Using slf4j for logging
+     */
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(LUP34.class);
+    
     /**
      * Accessing the TripleCollection Manager via the OSGi framework
      */
@@ -60,29 +66,23 @@ public class LUP34 implements LUPEngine
     }
 
     public String getDescription() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return "LUP module which provides a set of services for the Labelling T3.4 task.";
+    }
+
+    public String predict(HashMap<String, String> params) {
+        log.error("Not implemented yet");
+        return "Not implemented yet";
     }
     
     private class Listener3_4 implements GraphListener {
 
         public void graphChanged(List<GraphEvent> list) {
-            System.out.println("[LUP34] graphChanged");
+            log.info("graphChanged");
             for (GraphEvent e : list) {
-                System.out.println(" SUBJEC: [[ " + e.getTriple().getSubject().toString() + " ]]");
-                System.out.println(" PREDIC: [[ " + e.getTriple().getPredicate().toString() + " ]]");
-                System.out.println(" OBJECT: [[ " + e.getTriple().getObject().toString() + " ]]");
-                System.out.println();
-                System.out.println("[LUP34] Trying to get EVERYTHING about \"the subject\"");
                 Iterator<Triple> itTriple = annostore.filter(e.getTriple().getSubject(), null, null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
-                    System.out.println(" SUBJEC: [[ " + newTriple.getSubject().toString() + " ]]");
-                    System.out.println(" PREDIC: [[ " + newTriple.getPredicate().toString() + " ]]");
-                    System.out.println(" OBJECT: [[ " + newTriple.getObject().toString() + " ]]");
-                    System.out.println();
                 }
-                System.out.println();
-                System.out.println("[LUP34] Trying to get the body of the Annotation");
                 Resource body = annostore.filter(e.getTriple().getSubject(),
                         new UriRef("http://fusepool.eu/ontologies/annostore#hasBody"),
                         null).next().getObject();
@@ -90,56 +90,37 @@ public class LUP34 implements LUPEngine
                 itTriple = annostore.filter((NonLiteral)body, null, null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
-                    System.out.println(" SUBJEC: [[ " + newTriple.getSubject().toString() + " ]]");
-                    System.out.println(" PREDIC: [[ " + newTriple.getPredicate().toString() + " ]]");
-                    System.out.println(" OBJECT: [[ " + newTriple.getObject().toString() + " ]]");
-                    System.out.println();
                 }
-                System.out.println("[LUP34] Trying to get NEWLabels of the body");
                 itTriple = annostore.filter((NonLiteral)body, new UriRef("http://fusepool.eu/ontologies/annostore#hasNewLabel"), null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
-                    System.out.println(" SUBJEC: [[ " + newTriple.getSubject().toString() + " ]]");
-                    System.out.println(" PREDIC: [[ " + newTriple.getPredicate().toString() + " ]]");
-                    System.out.println(" OBJECT: [[ " + newTriple.getObject().toString() + " ]]");
                     Iterator<Triple> itLabel = annostore.filter((NonLiteral)(newTriple.getObject()),
                             new UriRef("http://www.w3.org/2011/content#chars"),
                             null);
                     while (itLabel.hasNext()) {
                         Triple newTriple2 = itLabel.next();
-                        System.out.println("[LUP34] NEW LABEL : " + newTriple2.getObject().toString());
-                        System.out.println();
                     }
-                    System.out.println();
                 }
-                System.out.println("[LUP34] Trying to get DELETEDLabels of the body");
                 itTriple = annostore.filter((NonLiteral)body, new UriRef("http://fusepool.eu/ontologies/annostore#hasDeletedLabel"), null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
-                    System.out.println(" SUBJEC: [[ " + newTriple.getSubject().toString() + " ]]");
-                    System.out.println(" PREDIC: [[ " + newTriple.getPredicate().toString() + " ]]");
-                    System.out.println(" OBJECT: [[ " + newTriple.getObject().toString() + " ]]");
                     Iterator<Triple> itLabel = annostore.filter((NonLiteral)newTriple.getObject(),
                             new UriRef("http://www.w3.org/2011/content#chars"),
                             null);
                     while (itLabel.hasNext()) {
                         Triple newTriple2 = itLabel.next();
-                        System.out.println("[LUP34] DELETED LABEL : " + newTriple2.getObject().toString());
-                        System.out.println();
                     }
-                    System.out.println();
                 }
-                System.out.println("[LUP34] TODO: *******************************************************");
-                System.out.println("[LUP34] TODO: GET THE CONTENT OF THE DOCUMENT");
-                System.out.println("[LUP34] TODO:   For this : use the <content> ontology Reto showed me.");
-                System.out.println("[LUP34] TODO: *******************************************************");
+                log.info("TODO: *******************************************************");
+                log.info("TODO: GET THE CONTENT OF THE DOCUMENT");
+                log.info("TODO:   For this : use the <content> ontology Reto showed me.");
+                log.info("TODO: *******************************************************");
             }
-            System.out.println();
             /**
              * Basically here we would need to BI things, and then update the models
              */
             //BI("This is a modification.");
-            updateModels();
+            updateModels(null);
         }
         
     }
@@ -159,7 +140,7 @@ public class LUP34 implements LUPEngine
     
     @Activate
     public void activate() {
-        System.out.println("[LUP 3.4] Activate");
+        log.info("Activation");
         // 1.) Accessing the AnnoStore
         tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
         annostore = tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
@@ -178,8 +159,7 @@ public class LUP34 implements LUPEngine
     
     @Deactivate
     private void deactivate() {
-        System.out.println("[LUP 3.4] Deactivate");
-        System.out.println("[LUP 3.4] I shall call the unregister() method");
+        log.info("Deactivate");
         this.predictionHub.unregister(this);
     }
     
@@ -229,7 +209,7 @@ public class LUP34 implements LUPEngine
         try {
             String jsonResult = this.clientPull.doPost("corpus_wikipedia/dopredictlabels/", serviceParam);
         } catch (Exception ex) {
-            Logger.getLogger(LUP34.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Labelling service currently unavailable");
         }
         // 4.
         
@@ -238,7 +218,7 @@ public class LUP34 implements LUPEngine
     
     public void updateModels(HashMap<String, String> params) {
         try {
-            System.out.println("[LUP34] UpdateModels");
+            log.info("UpdateModels");
             /** TEST 3.4
              * 1.) POST : /corpus_wikipedia/addText/, param: text=""
              * 2.) POST : /corpus_wikipedia/addLabels/, param: docId="", Label=""
@@ -298,7 +278,7 @@ public class LUP34 implements LUPEngine
 //            params.put("query", "Fusepool query five");
 //            this.clientPush.doPost("/dopredictallsources/", params);
         } catch (Exception ex) {
-            Logger.getLogger(LUP34.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Labelling prediction service unavailable");
         }
     }
     

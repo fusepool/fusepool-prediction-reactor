@@ -1,6 +1,7 @@
 package com.xerox.probe4_5;
 
 import com.xerox.services.LUPEngine;
+import java.util.HashMap;
 
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.UriRef;
@@ -44,11 +45,11 @@ public class LUP45 implements LUPEngine
     }
 
     public String getName() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return "LUP45";
     }
 
     public String getDescription() {
-        return "";
+        return "LUP module not implemented yet, which should provide some LUP services for the Adaptative Layout T4.5 task.";
     }
     
     public GraphListener getListener() {
@@ -78,6 +79,14 @@ public class LUP45 implements LUPEngine
     public void load() {}
     
     public String predict(String param) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    public void updateModels(HashMap<String, String> params) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    public String predict(HashMap<String, String> params) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }
