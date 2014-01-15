@@ -5,13 +5,8 @@ import com.xerox.services.LUPEngine;
 
 import java.io.IOException;
 import java.util.HashMap;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 
 import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
 
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.UriRef;
@@ -31,8 +26,6 @@ import org.slf4j.LoggerFactory;
  */
 @Component(metatype = true, immediate = true)
 @Service
-@Property(name = "javax.ws.rs", boolValue = true)
-@Path("predictionhub")
 public class PredictionHub implements HubEngine {
 
     /**
@@ -73,12 +66,12 @@ public class PredictionHub implements HubEngine {
         }
         lupIndex.put(name, p);
         annostore.addGraphListener(p.getListener(), p.getFilter(), p.getDelay());
-        System.out.println("[PREDICTION HUB] LUP Module " + p.getName() + " registered !");
-        System.out.println("[PREDICTION HUB] LUP registered :");
+        log.info("LUP Module " + p.getName() + " registered !");
+        log.info("LUP registered :");
         for (String key : lupIndex.keySet()) {
-            System.out.println("[PREDICTION HUB]   - " + key);
+            log.info("  - " + key);
         }
-        System.out.println("[PREDICTION HUB] Registering done");
+        log.info("Registering done");
     }
     
     public void unregister(LUPEngine p) {
@@ -86,14 +79,9 @@ public class PredictionHub implements HubEngine {
          * We have to remove the listener from the Annostore,
          * then remove the LUPEngine from the HashMap
          */
-        System.out.println("[PREDICTION HUB] Unregister()");
         annostore.removeGraphListener(p.getListener());
         lupIndex.remove(p.getName());
-        System.out.println("[PREDICTION HUB] Probe " + p.getName() + " removed.");
-        System.out.println("[PREDICTION HUB] LUP registered :");
-        for (String key : lupIndex.keySet()) {
-            System.out.println("[PREDICTION HUB]   - " + key);
-        }
+        log.info("LUP " + p.getName() + " removed.");
     }
     
     @Activate
@@ -114,7 +102,7 @@ public class PredictionHub implements HubEngine {
             lupIndex = new HashMap<String,LUPEngine>();
             
             // 3.) That's it
-            System.out.println("[PREDICTION HUB] Started !");
+            log.info("Started !");
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -128,7 +116,7 @@ public class PredictionHub implements HubEngine {
                 annostore.removeGraphListener(p.getListener());
             }
         }
-        System.out.println("[PREDICTION HUB] Stopped !");
+        log.info("Stopped !");
         /**
          * Note that we don't empty the probesList collection since a new ArrayList
          * instance will be created at (re-)activation. Garbage collector will
@@ -145,31 +133,4 @@ public class PredictionHub implements HubEngine {
         }
         return lupIndex.get(lupName).predict(params);
     }
-    
-    /**
-     * Returns the context of a resource. This includes any Annotation on that
-     * resource.
-     */
-    
-    @GET
-    public String testService(@Context final UriInfo uriInfo,
-            @QueryParam("query") final String query) throws Exception {
-        System.out.println("[PREDICTIONHUB] TestService(): " + query);
-        
-        String uriInfoStr = uriInfo.getRequestUri().toString();
-        
-        String response = "no query. Add a query param for a response message /test?query=<your query>";
-        
-        if(!(query == null)) {
-        	response = "parrot's response: " + query;
-        }
-        
-        return "Test PredictionHub service Ok. Request URI: " + uriInfoStr + ". Response: " + response;
-    }
-    
-    @POST
-    public String postAnnotation(final String query) {
-        return "This should work right ?";
-    }
-    
 }

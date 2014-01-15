@@ -7,6 +7,8 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * OSGi component allowing to access Push&Pull services to OpenXerox
@@ -15,6 +17,11 @@ import org.apache.felix.scr.annotations.Service;
 @Component(metatype = true, immediate = true)
 @Service
 public class OpenXeroxClient implements ClientEngine {
+    
+    /**
+     * Using slf4j for logging
+     */
+    private static final Logger log = LoggerFactory.getLogger(OpenXeroxClient.class);
     
     public RestEngine getPull() {
         return OpenXerox4Pull.getInstance();
@@ -26,11 +33,11 @@ public class OpenXeroxClient implements ClientEngine {
     
     @Activate
     public void activator() {
-        System.out.println("[OPENXEROX CLIENT] Started !");
+        log.info("Started !");
     }
     
     @Deactivate
     public void deactivator() {
-        System.out.println("[OPENXEROX CLIENT] Stopped !");
+        log.info("Stopped !");
     }
 }

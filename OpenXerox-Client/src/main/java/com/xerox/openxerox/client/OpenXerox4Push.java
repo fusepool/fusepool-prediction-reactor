@@ -34,9 +34,15 @@ import org.apache.http.*;
  * @author aczerny
  */
 public final class OpenXerox4Push implements RestEngine {
+    
     /**
      * Singleton class...
      */
+    
+    /**
+     * Using slf4j for logging
+     */
+    private static final Logger log = LoggerFactory.getLogger(OpenXerox4Push.class);
     
     private OpenXerox4Push() {
         // Nichts !
@@ -54,10 +60,7 @@ public final class OpenXerox4Push implements RestEngine {
 //    private String baseURL = "https://services.open.xerox.com/WebApp2.svc/MTLS";
     //private String baseURL = "https://mtls.services.open.xerox.com"; // New DNS entry
     private String baseURL = "http://spider-16:8080"; // Julien's machine
-    
-    private static final Logger log = LoggerFactory.getLogger(OpenXerox4Push.class);
 
-    
     public String doGet(String service) throws Exception { // It will return JSON stuff later I think
         try {
             /**
@@ -70,7 +73,7 @@ public final class OpenXerox4Push implements RestEngine {
             URL url = new URL(this.baseURL + service);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection(proxy);
             conn.setRequestMethod("GET");
-            System.out.println("[OPENXEROX PUSH] doGet() about to send to " + baseURL + service + " :");
+            log.info("doGet() about to send to " + baseURL + service + " :");
             BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
             String line;
             String result = "";
@@ -78,8 +81,8 @@ public final class OpenXerox4Push implements RestEngine {
                result += line;
             }
             rd.close();
-            System.out.println("[OPENXEROX PUSH] doGet() Status :");
-            System.out.println(result);
+            log.info("doGet() Status :");
+            log.info(result);
             return result;
         } catch (Exception e) {
             e.printStackTrace();
@@ -116,7 +119,6 @@ public final class OpenXerox4Push implements RestEngine {
                 }
                 content += key + "=" + URLEncoder.encode(data.get(key), "UTF-8");
             }
-            //System.out.println(content);
             out.writeBytes(content);
             out.flush();
             out.close();
@@ -124,70 +126,14 @@ public final class OpenXerox4Push implements RestEngine {
             String line = "";
             String result = "";
             while((line=in.readLine())!=null) {
-                System.out.println(line);
+                log.info(line);
                 result+=line+"\n";
             }
             in.close();
             return result;
         } catch (Exception ex) {
-            java.util.logging.Logger.getLogger(OpenXerox4Push.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Service " + service + " unavailable");
         }
         return "";
     }
-    
-//    public String doPost(String service, HashMap<String,String> params) throws Exception { // It will return JSON stuff later I think
-//        try {
-//            /**
-//             * These 2 lines are about the http proxy in XRCE, it should be
-//             * removed when deployed on the platform
-//             */
-//            SocketAddress addr = new InetSocketAddress("cornillon.grenoble.xrce.xerox.com", 8000);
-//            Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
-//            
-//            URL url = new URL(this.baseURL + service);
-//            HttpURLConnection conn = (HttpURLConnection) url.openConnection(proxy);
-//            
-//            conn.setDoOutput(true);
-//            conn.setDoInput(true);
-//            conn.setInstanceFollowRedirects(false);
-//            conn.setRequestMethod("POST");
-//            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded"); 
-//            conn.setRequestProperty("charset", "utf-8");
-//            
-//            String urlParameters = "";
-//            Integer dirtyCounter = 0;
-//            for (String key : params.keySet()) {
-//                String value = params.get(key);
-//                if (dirtyCounter == 0) {
-//                    urlParameters = key + "=" + value;
-//                } else {
-//                    urlParameters = urlParameters + "&" + key + "=" + value;
-//                }
-//                dirtyCounter++;
-//            }
-//            System.out.println("[OPENXEROX PUSH] doPost() about to send to " + baseURL + service + " :");
-//            for (String key : params.keySet()) {
-//                System.out.println("[OPENXEROX PUSH] " + key + " = " + params.get(key));
-//            }
-//            
-//            conn.setRequestProperty("Content-Length", "" + Integer.toString(urlParameters.getBytes().length));
-//            DataOutputStream wr = new DataOutputStream(conn.getOutputStream ());
-//            wr.writeBytes(urlParameters);
-//            wr.flush();
-//            wr.close();
-//            BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-//            String line;
-//            String result = "";
-//            while ((line = rd.readLine()) != null) {
-//               result += line;
-//            }
-//            System.out.println("[OPENXEROX PUSH] DoPost() Status :");
-//            System.out.println(result);
-//            rd.close();
-//            return result;
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//        }
-//    }
 }

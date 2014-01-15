@@ -27,6 +27,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of the predictor engine service
@@ -36,6 +37,12 @@ import org.codehaus.jettison.json.JSONObject;
 @Service(LUPEngine.class)
 public class LUP25 implements LUPEngine
 {
+    
+    /**
+     * Using slf4j for logging
+     */
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(LUP25.class);
+    
     /**
      * Accessing the TripleCollection Manager via the OSGi framework
      */
@@ -50,82 +57,50 @@ public class LUP25 implements LUPEngine
     private class Listener2_5 implements GraphListener {
 
         public void graphChanged(List<GraphEvent> list) {
-            System.out.println("[LUP 2.5 - GRAPH CHANGED]");
+            log.info("graph changed !");
             for (GraphEvent e : list) {
                 /**
                  * 1. Get the data source
                  * 2. Get every element of the body
                  */
                 HashMap<String, String> params = new HashMap<String, String>();
-                
-//                System.out.println(" SUBJEC: [[ " + e.getTriple().getSubject().toString() + " ]]");
-//                System.out.println(" PREDIC: [[ " + e.getTriple().getPredicate().toString() + " ]]");
-//                System.out.println(" OBJECT: [[ " + e.getTriple().getObject().toString() + " ]]");
-//                System.out.println();
-//                System.out.println("[LUP25] Trying to get the USER of the Annotation");
                 Iterator<Triple> itTriple = annostore.filter(e.getTriple().getSubject(),
                         new UriRef("http://www.w3.org/ns/oa#annotatedBy"),
                         null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
-//                    System.out.println(" SUBJEC: [[ " + newTriple.getSubject().toString() + " ]]");
-//                    System.out.println(" PREDIC: [[ " + newTriple.getPredicate().toString() + " ]]");
-//                    System.out.println(" OBJECT: [[ " + newTriple.getObject().toString() + " ]]");
                     params.put("user", newTriple.getObject().toString());
-//                    System.out.println("user = " + newTriple.getObject().toString());
-//                    System.out.println();
                 }
-//                System.out.println();
-//                System.out.println("[LUP25] Trying to get the TARGET of the Annotation");
                 Resource target = annostore.filter(e.getTriple().getSubject(),
                         new UriRef("http://www.w3.org/ns/oa#hasTarget"),
                         null).next().getObject();
-//                System.out.println();
                 
                 itTriple = annostore.filter((NonLiteral)target,
                         new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
                         null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
-//                    System.out.println(" SUBJEC: [[ " + newTriple.getSubject().toString() + " ]]");
-//                    System.out.println(" PREDIC: [[ " + newTriple.getPredicate().toString() + " ]]");
-//                    System.out.println(" OBJECT: [[ " + newTriple.getObject().toString() + " ]]");
                     params.put("type", newTriple.getObject().toString());
-//                    System.out.println("source = " + newTriple.getObject().toString());
-//                    System.out.println();
                 }
                 
-                //System.out.println("[LUP25] Trying to get the BODY of the Annotation");
                 Resource body = annostore.filter(e.getTriple().getSubject(),
                         new UriRef("http://www.w3.org/ns/oa#hasBody"),
                         null).next().getObject();
                 
-                //System.out.println("[LUP25] Trying to get the QUERY of the Annotation");
                 itTriple = annostore.filter((NonLiteral)body,
                         new UriRef("http://fusepool.eu/ontologies/annostore#hasQuery"),
                         null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
-//                    System.out.println(" SUBJEC: [[ " + newTriple.getSubject().toString() + " ]]");
-//                    System.out.println(" PREDIC: [[ " + newTriple.getPredicate().toString() + " ]]");
-//                    System.out.println(" OBJECT: [[ " + newTriple.getObject().toString() + " ]]");
                     params.put("query", newTriple.getObject().toString());
-//                    System.out.println("query = " + newTriple.getObject().toString());
-//                    System.out.println();
                 }
                 
-                //System.out.println("[LUP25] Trying to get the CLICKED of the Annotation");
                 itTriple = annostore.filter((NonLiteral)body,
                         new UriRef("http://fusepool.eu/ontologies/annostore#wasClicked"),
                         null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
-//                    System.out.println(" SUBJEC: [[ " + newTriple.getSubject().toString() + " ]]");
-//                    System.out.println(" PREDIC: [[ " + newTriple.getPredicate().toString() + " ]]");
-//                    System.out.println(" OBJECT: [[ " + newTriple.getObject().toString() + " ]]");
                     params.put("clicked", newTriple.getObject().toString());
-//                    System.out.println("clicked = " + newTriple.getObject().toString());
-//Iterator<Triple>                    System.out.println();
                 }
                 updateModels(params);
             }
@@ -148,7 +123,7 @@ public class LUP25 implements LUPEngine
     
     @Activate
     public void activate() {
-        System.out.println("[LUP 2.5] Activate");
+        log.info("Activation");
         // 1.) Accessing the AnnoStore
         tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
         annostore = tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
@@ -166,7 +141,7 @@ public class LUP25 implements LUPEngine
     
     @Deactivate
     private void deactivate() {
-        System.out.println("[LUP 2.5] Deactivate");
+        log.info("Deactivate");
         this.predictionHub.unregister(this);
     }
 
