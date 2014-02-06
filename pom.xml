@@ -10,6 +10,5 @@
     <module>OpenXerox-Client</module>
     <module>Prediction-Hub</module>
     <module>LearningProbes</module>
-    <module>ServicesAPI</module>
   </modules>
 </project>

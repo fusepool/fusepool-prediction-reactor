@@ -48,11 +48,11 @@ public final class OpenXerox4Pull implements RestEngine {
         }
         return (RestEngine) OpenXerox4Pull_instance;
     }
-    
 
 //    private String baseURL = "https://services.open.xerox.com/WebApp2.svc/MTLS";
-//    private String baseURL = "https://mtls.services.open.xerox.com"; // New DNS entry
-    private String baseURL = "http://spider-16:8080"; // Julien's machine
+    //private String baseURL = "https://mtls.services.open.xerox.com"; // New DNS entry
+    private String baseURL = "http://spider-7:8000";
+//    private String baseURL = "http://127.0.0.1:8000";
 
     public String doGet(String service) throws Exception { // It will return JSON stuff later I think
         try {

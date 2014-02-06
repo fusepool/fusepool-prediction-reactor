@@ -1,16 +1,14 @@
 package com.xerox.probe3_4;
 
-import com.xerox.predictionhub.PredictionHub;
 import com.xerox.services.LUPEngine;
 import com.xerox.services.ClientEngine;
 import com.xerox.services.HubEngine;
 import com.xerox.services.RestEngine;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.NonLiteral;
 import org.apache.clerezza.rdf.core.Resource;
@@ -24,6 +22,7 @@ import org.apache.clerezza.rdf.core.event.GraphListener;
 import org.codehaus.jettison.json.JSONObject;
 
 import org.apache.clerezza.rdf.core.event.FilterTriple;
+import org.apache.clerezza.rdf.core.impl.TripleImpl;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -59,7 +58,9 @@ public class LUP34 implements LUPEngine
      * Uri Reference to access the AnnoStore (Listener)
      */
     private UriRef ANNOTATION_GRAPH_NAME = new UriRef("urn:x-localinstance:/fusepool/annotation.graph");
+    private UriRef CONTENT_GRAPH_NAME = new UriRef("urn:x-localinstance:/content.graph");
     private MGraph annostore;
+    private MGraph contentstore;
     
     public String getName() {
         return "LUP34";
@@ -79,18 +80,26 @@ public class LUP34 implements LUPEngine
         public void graphChanged(List<GraphEvent> list) {
             log.info("graphChanged");
             for (GraphEvent e : list) {
+                HashMap<String,String> params = new HashMap<String, String>();
                 Iterator<Triple> itTriple = annostore.filter(e.getTriple().getSubject(), null, null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
                 }
+                Resource target = annostore.filter(e.getTriple().getSubject(),
+                        new UriRef("http://fusepool.eu/ontologies/annostore#hasTarget"),
+                        null).next().getObject();
+                
+                params.put("docURI", target.toString());
+                log.info("docURI: [" + target.toString() + "]");
+                
                 Resource body = annostore.filter(e.getTriple().getSubject(),
                         new UriRef("http://fusepool.eu/ontologies/annostore#hasBody"),
                         null).next().getObject();
                 
-                itTriple = annostore.filter((NonLiteral)body, null, null);
-                while (itTriple.hasNext()) {
-                    Triple newTriple = itTriple.next();
-                }
+//                itTriple = annostore.filter((NonLiteral)body, null, null);
+//                while (itTriple.hasNext()) {
+//                    Triple newTriple = itTriple.next();
+//                }
                 itTriple = annostore.filter((NonLiteral)body, new UriRef("http://fusepool.eu/ontologies/annostore#hasNewLabel"), null);
                 while (itTriple.hasNext()) {
                     Triple newTriple = itTriple.next();
@@ -99,6 +108,8 @@ public class LUP34 implements LUPEngine
                             null);
                     while (itLabel.hasNext()) {
                         Triple newTriple2 = itLabel.next();
+                        log.info("new label: [" + newTriple2.getObject().toString() + "]");
+                        params.put("newLabel", newTriple2.getObject().toString());
                     }
                 }
                 itTriple = annostore.filter((NonLiteral)body, new UriRef("http://fusepool.eu/ontologies/annostore#hasDeletedLabel"), null);
@@ -109,25 +120,30 @@ public class LUP34 implements LUPEngine
                             null);
                     while (itLabel.hasNext()) {
                         Triple newTriple2 = itLabel.next();
+                        log.info("deleted label: [" + newTriple2.getObject().toString() + "]");
+                        params.put("deletedLabel", newTriple2.getObject().toString());
                     }
                 }
-                log.info("TODO: *******************************************************");
-                log.info("TODO: GET THE CONTENT OF THE DOCUMENT");
-                log.info("TODO:   For this : use the <content> ontology Reto showed me.");
-                log.info("TODO: *******************************************************");
+                itTriple = contentstore.filter((NonLiteral)target,
+                        new UriRef("http://rdfs.org/sioc/ns#content"),
+                        null);
+                String content = itTriple.next().getObject().toString();
+                log.info("CONTENT FOUND:");
+                log.info(content);
+                params.put("content", content);
+                updateModels(params);
             }
-            /**
-             * Basically here we would need to BI things, and then update the models
-             */
-            //BI("This is a modification.");
-            updateModels(null);
         }
-        
     }
     
     private LUP34.Listener3_4 listener3_4;
     private FilterTriple filter3_4;
     private long delay3_4;
+    
+    /**
+     * Key: DocURI - Value: DocID, as returned by the OpenXerox service.
+     */
+    private HashMap<String, Integer> docIDIndex;
     
     @Reference
     private ClientEngine openXeroxClient;
@@ -136,22 +152,23 @@ public class LUP34 implements LUPEngine
     private RestEngine clientPull;
     
     @Reference
-    private PredictionHub predictionHub;
+    private HubEngine predictionHub;
     
     @Activate
     public void activate() {
         log.info("Activation");
         // 1.) Accessing the AnnoStore
-        tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
         annostore = tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
+        contentstore = tcManager.getMGraph(CONTENT_GRAPH_NAME);
         // 2.) Instanciating any listener, filter, delay and web access needed
         this.listener3_4 = new LUP34.Listener3_4();
         this.filter3_4 = new FilterTriple(
                 null ,
                 null ,
-                new UriRef("http://fusepool.eu/ontologies/annostore#LabellingAnnotation"));
+                new UriRef("http://fusepool.eu/ontologies/annostore#labellingAnnotation"));
         // this.filter3_4 = new FilterTriple(null, null, null);
         this.delay3_4 = 5000;
+        this.docIDIndex = new HashMap<String, Integer>();
         this.clientPush = openXeroxClient.getPush();
         this.clientPull = openXeroxClient.getPull();
         this.predictionHub.register(this);
@@ -181,7 +198,7 @@ public class LUP34 implements LUPEngine
             this.filter3_4 = new FilterTriple(
                     null ,
                     null ,
-                    new UriRef("http://fusepool.eu/ontologies/annostore#LabellingAnnotation"));
+                    new UriRef("http://fusepool.eu/ontologies/annostore#labellingAnnotation"));
             // this.filter3_4 = new FilterTriple(null, null, null);
 
         }
@@ -191,99 +208,55 @@ public class LUP34 implements LUPEngine
     public long getDelay() {
         return this.delay3_4;
     }
-
-    public String predict(String param) {
-        /**
-         * 1. Parse the <param> string (just a single URI)
-         * 2. Get the content of the text from the ECS
-         * 3. Calls the proper openxerox service
-         * 4. Parse the result as a JSON object
-         * 5. Build and return the proper result (list of labels)
-         */
-        // 1. Ok... that is <param> actually
-        // 2. I wait for Reto's answer
-        String content = "";
-        HashMap<String,String> serviceParam = new HashMap<String, String>();
-        serviceParam.put("text", content);
-        // 3.
-        try {
-            String jsonResult = this.clientPull.doPost("corpus_wikipedia/dopredictlabels/", serviceParam);
-        } catch (Exception ex) {
-            log.error("Labelling service currently unavailable");
-        }
-        // 4.
-        
-        return "bricks;manufacturing;industry";
-    }
     
     public void updateModels(HashMap<String, String> params) {
         try {
-            log.info("UpdateModels");
-            /** TEST 3.4
-             * 1.) POST : /corpus_wikipedia/addText/, param: text=""
-             * 2.) POST : /corpus_wikipedia/addLabels/, param: docId="", Label=""
-             * 3.) GET :  /learn/5
-             * 4.) POST : /corpus_wikipedia/dopredictlabels/, param: text=""
+            HashMap<String, String> paramsTmp = new HashMap<String, String>();
+            /**
+             * 1.) Checking whether the document is already present on the OX DB
+             * 2.) If not, we need to call /addtext/ first, then /addlabels/
+             * 3.) If it is, just call /addlabels/
              */
-            //this.clientPush.doPost("/corpus_wikipedia/addtext/", "Document about manufacturing bricks in Toulouse");
-//            HashMap<String,String> params = new HashMap<String, String>();
-//            params.put("text", "Document about manufacturing bricks in Toulouse");
-//            this.clientPush.doPost("/corpus_wikipedia/addtext/", params);
-//            params = new HashMap<String, String>();
-//            params.put("docID", "5");
-//            params.put("labels", "djenty");
-//            this.clientPush.doPost(("/corpus_wikipedia/addlabels/"), params);
-            
-            /** TEST 2.5
-             * 1.) POST : /additem/, param: user, query, source, click (known user, known source)
-             * 2.) POST : /additem/, param: user, query, source, click (known user, unknown source)
-             * 3.) POST : /additem/, param: user, query, source, click (unknown user, known source)
-             * 4.) POST : /additem/, param: user, query, source, click (unknown user, unknown source)
-             * 5.) GET  : /dolearn/5/
-             * 6.) GET  : /dump/
-             * 7.) POST : /dopredictallsources/, param: user, query
+            // 1.)
+            if (!this.docIDIndex.containsKey(params.get("docURI"))) {
+                log.info("Inserting new document to the model !");
+                paramsTmp.put("checkboxclassify", " ");
+                paramsTmp.put("text", params.get("content"));
+                log.info("doPost /fusepool/addtext/");
+                String addtextReturn = this.clientPush.doPost("/fusepool/addtext/", paramsTmp);
+                /**
+                 * We fetch the POST return and turn the JSON into a Integer Doc ID
+                 * (to insert into the docIDIndex).
+                 */
+                JSONObject addtextReturnJSON = new JSONObject(addtextReturn);
+                Integer newDocID = addtextReturnJSON.getInt("documentID");
+                log.info("Document: [" + params.get("docURI") + "] has documentID: [" + newDocID + "]");
+                this.docIDIndex.put(params.get("docURI"), newDocID);
+            }
+            // 2.)
+            /**
+             * First, we check if there are spaces; if so, we turn them into "-"
              */
-            
-//            HashMap<String,String> params = new HashMap<String, String>();
-//            params.put("user", "Adrian");
-//            params.put("query", "Fusepool query one");
-//            params.put("source", "source one");
-//            params.put("click", "0");
-//            this.clientPush.doPost("/additem/", params);
-//            params = new HashMap<String, String>();
-//            params.put("user", "FusepoolOtherOtherUser");
-//            params.put("query", "Fusepool query two");
-//            params.put("source", "patent");
-//            params.put("click", "1");
-//            this.clientPush.doPost("/additem/", params);
-//            params = new HashMap<String, String>();
-//            params.put("user", "FusepoolUser");
-//            params.put("query", "Fusepool query three");
-//            params.put("source", "source one");
-//            params.put("click", "0");
-//            this.clientPush.doPost("/additem/", params);
-//            params = new HashMap<String, String>();
-//            params.put("user", "FusepoolOtherUser");
-//            params.put("query", "Fusepool query four");
-//            params.put("source", "patents");
-//            params.put("click", "1");
-//            this.clientPush.doPost("/additem/", params);
-//            
-//            this.clientPush.doGet("/dolearn/5/");
-//            
-//            this.clientPush.doGet("/dump/");
-//            
-//            params = new HashMap<String, String>();
-//            params.put("user", "FusepoolOtherUser");
-//            params.put("query", "Fusepool query five");
-//            this.clientPush.doPost("/dopredictallsources/", params);
+            paramsTmp.clear();
+            String newLabel = params.get("newLabel");
+            newLabel = newLabel.trim();
+            newLabel = newLabel.replace(' ', '-');
+            paramsTmp.put("labels", newLabel);
+            paramsTmp.put("docID", this.docIDIndex.get(params.get("docURI")).toString());
+            log.info("Adding labels: [" + newLabel + "] to documentID: [" + this.docIDIndex.get(params.get("docURI")) + "]");
+            log.info("doPost /fusepool/addlabels/");
+            this.clientPush.doPost("/fusepool/addlabels/", paramsTmp);
+            log.info("docIDIndex contains:");
+            for (String docURI : this.docIDIndex.keySet()) {
+                log.info(docURI);
+            }
         } catch (Exception ex) {
             log.error("Labelling prediction service unavailable");
         }
     }
     
     /**
-     * Nothing to do since the the model is not on the platform.
+     * We have to save/load the docID index
      */
     public void save() {}
     public void load() {}

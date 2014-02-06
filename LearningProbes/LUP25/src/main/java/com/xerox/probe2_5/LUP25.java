@@ -166,18 +166,19 @@ public class LUP25 implements LUPEngine
 
     public void updateModels(HashMap<String, String> params) {
         try {
+            log.info("Pushing parameters to OpenXerox.");
             clientPush.doPost("/additem/", params);
         } catch (Exception ex) {
-            Logger.getLogger(LUP25.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Service /additem/ unavailable");
         }
     }
 
-    public String predict(HashMap params) {
+    public String predict(HashMap<String,String> params) {
         try {
             String result = clientPull.doPost("/dopredictallsources/", params);
             return result;
         } catch (Exception ex) {
-            Logger.getLogger(LUP25.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Service /dopredictallsources/ unavailable");
         }
         return null;
     }
