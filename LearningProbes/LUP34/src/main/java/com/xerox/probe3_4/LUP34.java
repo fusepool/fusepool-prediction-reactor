@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.NonLiteral;
 import org.apache.clerezza.rdf.core.Resource;
@@ -28,6 +30,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.codehaus.jettison.json.JSONArray;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -70,11 +73,6 @@ public class LUP34 implements LUPEngine
         return "LUP module which provides a set of services for the Labelling T3.4 task.";
     }
 
-    public String predict(HashMap<String, String> params) {
-        log.error("Not implemented yet");
-        return "Not implemented yet";
-    }
-    
     private class Listener3_4 implements GraphListener {
 
         public void graphChanged(List<GraphEvent> list) {
@@ -239,6 +237,7 @@ public class LUP34 implements LUPEngine
              */
             paramsTmp.clear();
             String newLabel = params.get("newLabel");
+            newLabel = newLabel.replace('"', ' ');
             newLabel = newLabel.trim();
             newLabel = newLabel.replace(' ', '-');
             paramsTmp.put("labels", newLabel);
@@ -253,6 +252,42 @@ public class LUP34 implements LUPEngine
         } catch (Exception ex) {
             log.error("Labelling prediction service unavailable");
         }
+    }
+    
+    public String predict(HashMap<String, String> params) {
+        try {
+            /**
+             * 1.) Fetch the content of the docURI object
+             * 2.) Call /fusepool/dopredictlabels/
+             * 3.) Parse the String returned to replace "-" with " " !
+             */
+            log.info("LUP34 PREDICT()");
+            Iterator<Triple> itTriple = contentstore.filter(new UriRef(params.get("docURI")),
+                            new UriRef("http://rdfs.org/sioc/ns#content"),
+                            null);
+            String content = itTriple.next().getObject().toString();
+            HashMap<String, String> paramsPrediction = new HashMap<String, String>();
+            paramsPrediction.put("text", content);
+            // 2.) Parsing the JSON returned
+            JSONObject jsonResult = new JSONObject(clientPull.doPost("/fusepool/dopredictlabels/", paramsPrediction));
+            Iterator<String> it = jsonResult.keys();
+            String labelList;
+            String firstLabel = it.next().trim().replace('-', ' ');
+            labelList = firstLabel;
+            while (it.hasNext()) {
+                String newLabel = it.next();
+                newLabel = newLabel.trim();
+                newLabel = newLabel.replace('-', ' ');
+                log.info(newLabel);
+                labelList = labelList+";"+newLabel;
+            }
+            log.info("LABEL LIST");
+            log.info(labelList);
+            return labelList;
+        } catch (Exception ex) {
+            log.error("Service /fusepool/dopredictlabels/ ", ex);
+        }
+        return "An error occured, maybe the service /fusepool/dopredictlabels/ is not available";
     }
     
     /**
