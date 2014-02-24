@@ -64,6 +64,7 @@ public final class OpenXerox4Pull implements RestEngine {
             
             URL url = new URL(this.baseURL + service);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            
             conn.setRequestMethod("GET");
             log.info("doGet() about to send to " + baseURL + service + " :");
             BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));

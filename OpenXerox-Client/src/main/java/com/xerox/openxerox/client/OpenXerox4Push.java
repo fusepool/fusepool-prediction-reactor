@@ -62,6 +62,7 @@ public final class OpenXerox4Push implements RestEngine {
     
     public String doGet(String service) throws Exception { // It will return JSON stuff later I think
         try {
+            
             /**
              * These 2 lines are about the http proxy in XRCE, it should be
              * removed when deployed on the platform
@@ -71,6 +72,7 @@ public final class OpenXerox4Push implements RestEngine {
             
             URL url = new URL(this.baseURL + service);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            
             conn.setRequestMethod("GET");
             log.info("doGet() about to send to " + baseURL + service + " :");
             BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
