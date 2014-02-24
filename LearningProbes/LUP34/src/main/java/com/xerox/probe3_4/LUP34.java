@@ -281,6 +281,10 @@ public class LUP34 implements LUPEngine
             String labelList;
             String firstLabel = it.next().trim().replace('-', ' ');
             String firstConfidence = jsonResult.getString(firstLabel);
+            /**
+             * TO CHANGE THE FORMAT OF THE RETURNED STRING, PLEASE SWITCH COMMENTS
+             * ON LINE (288,289) and (295,296)
+             */
             labelList = firstLabel;
             // labelList = firstLabel + "__" + firstConfidence;
             while (it.hasNext()) {
