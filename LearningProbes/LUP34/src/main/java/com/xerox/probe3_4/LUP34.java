@@ -4,13 +4,10 @@ import com.xerox.services.LUPEngine;
 import com.xerox.services.ClientEngine;
 import com.xerox.services.HubEngine;
 import com.xerox.services.RestEngine;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.NonLiteral;
 import org.apache.clerezza.rdf.core.Resource;
@@ -24,13 +21,11 @@ import org.apache.clerezza.rdf.core.event.GraphListener;
 import org.codehaus.jettison.json.JSONObject;
 
 import org.apache.clerezza.rdf.core.event.FilterTriple;
-import org.apache.clerezza.rdf.core.impl.TripleImpl;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
-import org.codehaus.jettison.json.JSONArray;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -211,7 +206,7 @@ public class LUP34 implements LUPEngine
         try {
             HashMap<String, String> paramsTmp = new HashMap<String, String>();
             /**
-             * 1.) Checking whether the document is already present on the OX DB
+             * 1.) Checking whether the document is already present on the OpenXerox DB
              * 2.) If not, we need to call /addtext/ first, then /addlabels/
              * 3.) If it is, just call /addlabels/
              */
@@ -266,28 +261,43 @@ public class LUP34 implements LUPEngine
                             new UriRef("http://rdfs.org/sioc/ns#content"),
                             null);
             String content = itTriple.next().getObject().toString();
+            // 1.) Get rid of the RDF/XML type
+            if (content.contains("^^")) {
+                content = content.substring(0, content.indexOf("^^"));
+            }
+            // 2.) Get rid of the guillemets
+            content = content.replace('"', ' ');
+            // 3.) Trim
+            content = content.trim();
+            
             HashMap<String, String> paramsPrediction = new HashMap<String, String>();
             paramsPrediction.put("text", content);
             // 2.) Parsing the JSON returned
-            JSONObject jsonResult = new JSONObject(clientPull.doPost("/fusepool/dopredictlabels/", paramsPrediction));
+            log.info("Content for docURI: " + params.get("docURI") + " : [" + content + "]");
+            String result = clientPull.doPost("/fusepool/dopredictlabels/", paramsPrediction);
+            JSONObject jsonResult = new JSONObject(result);
+            // 2. bis) TODO : Check if no label is returned !
             Iterator<String> it = jsonResult.keys();
             String labelList;
             String firstLabel = it.next().trim().replace('-', ' ');
+            String firstConfidence = jsonResult.getString(firstLabel);
             labelList = firstLabel;
+            // labelList = firstLabel + "__" + firstConfidence;
             while (it.hasNext()) {
                 String newLabel = it.next();
+                String newConfidence = jsonResult.getString(newLabel);
                 newLabel = newLabel.trim();
                 newLabel = newLabel.replace('-', ' ');
-                log.info(newLabel);
                 labelList = labelList+";"+newLabel;
+                // labelList = labelList+"##"+ newLabel + "__" + newConfidence;
             }
-            log.info("LABEL LIST");
+            log.info("Label list sent:");
             log.info(labelList);
             return labelList;
         } catch (Exception ex) {
-            log.error("Service /fusepool/dopredictlabels/ ", ex);
+            log.error("Service /fusepool/dopredictlabels/ unavailable", ex);
         }
-        return "An error occured, maybe the service /fusepool/dopredictlabels/ is not available";
+        return "__error__";
     }
     
     /**
