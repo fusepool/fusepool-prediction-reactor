@@ -3,6 +3,7 @@ package com.xerox.openxerox.client;
 import com.xerox.services.RestEngine;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -15,11 +16,15 @@ import java.net.SocketAddress;
 import java.net.Proxy;
 import java.net.InetSocketAddress;
 import java.net.URLEncoder;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
 
 /**
  * This singleton class is used by the OSGi component for accessing OpenXerox
@@ -38,7 +43,7 @@ public final class OpenXerox4Pull implements RestEngine {
     /**
      * Using slf4j for logging
      */
-    private static final Logger log = LoggerFactory.getLogger(OpenXerox4Push.class);
+    private static final Logger log = LoggerFactory.getLogger(OpenXerox4Pull.class);
     
     private OpenXerox4Pull() {}
     private static OpenXerox4Pull OpenXerox4Pull_instance = new OpenXerox4Pull();
@@ -64,7 +69,16 @@ public final class OpenXerox4Pull implements RestEngine {
             
             URL url = new URL(this.baseURL + service);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
-            
+            /**
+             * Makes the connection accept any kind of certificate
+             */
+            conn.setHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String string, SSLSession ssls) {
+                    return true;
+                }
+            });
+
             conn.setRequestMethod("GET");
             log.info("doGet() about to send to " + baseURL + service + " :");
             BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -90,7 +104,16 @@ public final class OpenXerox4Pull implements RestEngine {
 //            Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
             
             URL url = new URL(this.baseURL + service);
-            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            final HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            /**
+             * Makes the connection accept any kind of certificate
+             */
+            conn.setHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String string, SSLSession ssls) {
+                    return true;
+                }
+            });
             
             //HttpURLConnection conn = (HttpURLConnection) siteUrl.openConnection();
             conn.setRequestMethod("POST");
@@ -99,9 +122,21 @@ public final class OpenXerox4Pull implements RestEngine {
             conn.setUseCaches (true);
             conn.setDoOutput(true);
             conn.setDoInput(true);
-
-            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
-
+            
+            //DataOutputStream out = new DataOutputStream(conn.getOutputStream());
+            // --------------------
+            //access the required files and do the required networking as priviledged
+            DataOutputStream out = (DataOutputStream)AccessController.doPrivileged(new PrivilegedAction() {
+                public Object run() {
+                    try {
+                        return new DataOutputStream(conn.getOutputStream());
+                    } catch (IOException e) {
+                        log.error("OpenXerox4Pull cannot access the service ", e);
+                    }
+                    return null;
+                }
+            });
+            // --------------------
             Set keys = data.keySet();
             Iterator keyIter = keys.iterator();
             String content = "";

@@ -16,5 +16,6 @@
       <module>LUP34</module>
       <module>LUP45</module>
       <module>LUP55</module>
+	  <module>LUPTest</module>
   </modules>
 </project>
