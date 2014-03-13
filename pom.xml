@@ -7,9 +7,9 @@
   <packaging>pom</packaging>
   <name>Prediction Reactor</name>
   <modules>
+    <module>Xerox-Services-API</module>
     <module>OpenXerox-Client</module>
     <module>Prediction-Hub</module>
     <module>LearningProbes</module>
-    <module>Xerox-Services-API</module>
   </modules>
 </project>
