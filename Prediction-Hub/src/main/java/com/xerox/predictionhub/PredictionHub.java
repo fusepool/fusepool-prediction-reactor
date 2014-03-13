@@ -61,6 +61,13 @@ public class PredictionHub implements HubEngine {
          * 3) Plug the Listener with the TripleFilter to the AS
          */
         String name = p.getName();
+        /**
+         * During the stanbol boostrap LUPs can access the register method before the PredictionHub
+         * initated the lupIndex, so here is a very defensive condition
+         */
+        if (lupIndex == null) {
+            lupIndex = new HashMap<String, LUPEngine>();
+        }
         if (lupIndex.containsKey(name)) {
             return;
         }
