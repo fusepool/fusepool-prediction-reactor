@@ -17,6 +17,8 @@ import java.net.Proxy;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URLEncoder;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -96,7 +98,7 @@ public final class OpenXerox4Push implements RestEngine {
 //            Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
             
             URL url = new URL(this.baseURL + service);
-            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            final HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
             
             //HttpURLConnection conn = (HttpURLConnection) siteUrl.openConnection();
             conn.setRequestMethod("POST");
@@ -105,9 +107,20 @@ public final class OpenXerox4Push implements RestEngine {
             conn.setUseCaches (true);
             conn.setDoOutput(true);
             conn.setDoInput(true);
-
-            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
-
+            
+//            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
+            // --------------------
+            //access the required files and do the required networking as priviledged
+            DataOutputStream out = (DataOutputStream)AccessController.doPrivileged(new PrivilegedAction() {
+                public Object run() {
+                    try {
+                        return new DataOutputStream(conn.getOutputStream());
+                    } catch (IOException e) {
+                        log.error("OpenXerox4Push cannot access the service ", e);
+                    }
+                    return null;
+                }
+            });
             Set keys = data.keySet();
             Iterator keyIter = keys.iterator();
             String content = "";

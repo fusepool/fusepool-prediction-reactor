@@ -3,6 +3,7 @@ package com.xerox.openxerox.client;
 import com.xerox.services.RestEngine;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -15,6 +16,8 @@ import java.net.SocketAddress;
 import java.net.Proxy;
 import java.net.InetSocketAddress;
 import java.net.URLEncoder;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
@@ -38,7 +41,7 @@ public final class OpenXerox4Pull implements RestEngine {
     /**
      * Using slf4j for logging
      */
-    private static final Logger log = LoggerFactory.getLogger(OpenXerox4Push.class);
+    private static final Logger log = LoggerFactory.getLogger(OpenXerox4Pull.class);
     
     private OpenXerox4Pull() {}
     private static OpenXerox4Pull OpenXerox4Pull_instance = new OpenXerox4Pull();
@@ -84,23 +87,36 @@ public final class OpenXerox4Pull implements RestEngine {
     
     public String doPost(String service, HashMap<String, String> data) {
         try {
-            
+
 //            SocketAddress addr = new InetSocketAddress("cornillon.grenoble.xrce.xerox.com", 8000);
 //            Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
             
             URL url = new URL(this.baseURL + service);
-            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            final HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
             
             //HttpURLConnection conn = (HttpURLConnection) siteUrl.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", 
                    "application/x-www-form-urlencoded");
-            conn.setUseCaches (true);
+            conn.setUseCaches (false);
             conn.setDoOutput(true);
             conn.setDoInput(true);
+            
+//            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
 
-            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
-
+            // --------------------
+            //access the required files and do the required networking as priviledged
+            // NOT SURE IF THAT FIXES THE PROBLEM ACTUALLY
+            DataOutputStream out = (DataOutputStream)AccessController.doPrivileged(new PrivilegedAction() {
+                public Object run() {
+                    try {
+                        return new DataOutputStream(conn.getOutputStream());
+                    } catch (IOException e) {
+                        log.error("OpenXerox4Pull cannot access the service ", e);
+                    }
+                    return null;
+                }
+            });
             Set keys = data.keySet();
             Iterator keyIter = keys.iterator();
             String content = "";
@@ -111,6 +127,7 @@ public final class OpenXerox4Pull implements RestEngine {
                 }
                 content += key + "=" + URLEncoder.encode(data.get(key), "UTF-8");
             }
+            log.info(content);
             out.writeBytes(content);
             out.flush();
             out.close();

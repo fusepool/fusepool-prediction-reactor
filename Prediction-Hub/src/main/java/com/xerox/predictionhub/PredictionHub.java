@@ -48,7 +48,7 @@ public class PredictionHub implements HubEngine {
      * List of probes. Don't forget to insert any probes you need into this list
      * at activation !
      */
-    private HashMap<String, LUPEngine> lupIndex;
+    private HashMap<String, LUPEngine> lupIndex = new HashMap<String,LUPEngine>();
     
     public String getAnnostore() {
         return ANNOTATION_GRAPH_NAME.toString();
@@ -99,7 +99,7 @@ public class PredictionHub implements HubEngine {
             annostore = tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
             
             // 2.) Creating ProbesList
-            lupIndex = new HashMap<String,LUPEngine>();
+            
             
             // 3.) That's it
             log.info("Started !");

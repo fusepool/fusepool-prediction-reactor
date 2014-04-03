@@ -8,11 +8,11 @@
   </parent>
 
     <groupId>com.xerox</groupId>
-    <artifactId>Probe4_5</artifactId>
+    <artifactId>patents.etl</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
-    <name>LUP :: 4.5</name>
+    <name>Patents ETL</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -40,13 +40,11 @@
             <groupId>org.apache.clerezza</groupId>
             <artifactId>rdf.core</artifactId>
             <version>0.13</version>
-            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.xerox.openxerox</groupId>
             <artifactId>OpenXerox-Client</artifactId>
             <version>1.0-SNAPSHOT</version>
-            <type>jar</type>
         </dependency>
         <dependency>
           <groupId>org.apache.felix</groupId>
@@ -57,30 +55,22 @@
             <groupId>com.xerox</groupId>
             <artifactId>xeroxservicesapi</artifactId>
             <version>1.0-SNAPSHOT</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.stanbol</groupId>
-            <artifactId>org.apache.stanbol.commons.web.viewable</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.clerezza</groupId>
             <artifactId>rdf.utils</artifactId>
             <version>0.14-SNAPSHOT</version>
-            <type>jar</type>
         </dependency>
         <dependency>
-            <groupId>eu.fusepool</groupId>
-            <artifactId>ecs.ontologies</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <type>jar</type>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>javax.ws.rs-api</artifactId>
+            <version>2.0</version>
         </dependency>
     </dependencies>
 
   <build>
     <!-- make it an OSGi bundle -->
+    <finalName>patentsETL-1.0</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.felix</groupId>

@@ -16,5 +16,7 @@
       <module>LUP34</module>
       <module>LUP45</module>
       <module>LUP55</module>
+      <module>PatentsETL</module>
+      <module>PubmedsETL</module>
   </modules>
 </project>
