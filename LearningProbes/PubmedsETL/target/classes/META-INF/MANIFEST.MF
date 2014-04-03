@@ -1,0 +1,20 @@
+Manifest-Version: 1.0
+Bnd-LastModified: 1396449880964
+Build-Jdk: 1.7.0_04
+Built-By: Adrien
+Bundle-ManifestVersion: 2
+Bundle-Name: PubMeds ETL
+Bundle-SymbolicName: com.xerox.pubmeds.etl
+Bundle-Version: 1.0.0.SNAPSHOT
+Created-By: Apache Maven Bundle Plugin
+Export-Package: com.xerox.probe4_5;uses:="javax.ws.rs,org.apache.clerezz
+ a.rdf.core.access,org.apache.clerezza.rdf.core.serializedform,org.apach
+ e.clerezza.rdf.core,org.apache.clerezza.rdf.core.impl,org.slf4j,org.osg
+ i.framework,javax.ws.rs.core";version="1.0.0.SNAPSHOT"
+Import-Package: javax.ws.rs;version="[2.0,3)",javax.ws.rs.core;version="
+ [2.0,3)",org.apache.clerezza.rdf.core,org.apache.clerezza.rdf.core.acce
+ ss,org.apache.clerezza.rdf.core.impl,org.apache.clerezza.rdf.core.seria
+ lizedform,org.osgi.framework;version="[1.6,2)",org.slf4j;version="[1.6,
+ 2)"
+Service-Component: OSGI-INF/com.xerox.probe4_5.PubmedsETL.xml
+Tool: Bnd-1.50.0

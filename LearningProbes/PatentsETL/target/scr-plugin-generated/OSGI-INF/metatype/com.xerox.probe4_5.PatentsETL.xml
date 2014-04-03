@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?><metatype:MetaData xmlns:metatype="http://www.osgi.org/xmlns/metatype/v1.0.0" localization="OSGI-INF/metatype/metatype">
+    <OCD id="com.xerox.probe4_5.PatentsETL" name="%com.xerox.probe4_5.PatentsETL.name" description="%com.xerox.probe4_5.PatentsETL.description">
+        <AD id="javax.ws.rs" type="Boolean" default="true" name="%javax.ws.rs.name" description="%javax.ws.rs.description"/>
+    </OCD>
+    <Designate pid="com.xerox.probe4_5.PatentsETL">
+        <Object ocdref="com.xerox.probe4_5.PatentsETL"/>
+    </Designate>
+</metatype:MetaData>
