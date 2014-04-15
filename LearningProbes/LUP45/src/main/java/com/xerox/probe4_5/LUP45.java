@@ -6,15 +6,13 @@ import com.xerox.services.LUPEngine;
 import com.xerox.services.RestEngine;
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import eu.fusepool.ecs.ontologies.ECS;
 import java.util.ArrayList;
 import org.apache.clerezza.rdf.core.BNode;
+import java.util.HashMap;
+import java.util.Iterator;
 
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.NonLiteral;
@@ -37,7 +35,6 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.stanbol.commons.web.viewable.RdfViewable;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -52,7 +49,6 @@ public class LUP45 implements LUPEngine
      * Using slf4j for logging
      */
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(LUP45.class);
-    
     /**
      * Accessing the TripleCollection Manager via the OSGi framework
      */
@@ -69,6 +65,7 @@ public class LUP45 implements LUPEngine
      */
     private UriRef ANNOTATION_GRAPH_NAME = new UriRef("urn:x-localinstance:/fusepool/annotation.graph");
     private MGraph annostore;
+    
 //    private UriRef CONTENT_GRAPH_NAME = new UriRef("urn:x-localinstance:/fusepool/content.graph");
 //    private MGraph annostore;
     
@@ -95,7 +92,12 @@ public class LUP45 implements LUPEngine
     
     @Activate
     private void activate() {
-        tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
+        /**
+         * 1.) Fetch graphs
+         * 2.) Create files
+         * 3.) ETL
+         */
+        // 1.) Fetch graphs
         annostore = tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
         // 2.) Instanciating any listener, filter, delay and web access needed
         this.listener4_5 = new LUP45.Listener4_5();

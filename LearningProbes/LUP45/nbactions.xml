@@ -46,5 +46,8 @@
                 <goal>install</goal>
                 <goal>org.apache.sling:maven-sling-plugin:install</goal>
             </goals>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
         </action>
 </actions>

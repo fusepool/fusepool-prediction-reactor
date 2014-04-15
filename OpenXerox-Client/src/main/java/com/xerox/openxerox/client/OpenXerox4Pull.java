@@ -22,7 +22,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
 
 /**
  * This singleton class is used by the OSGi component for accessing OpenXerox
@@ -67,6 +69,16 @@ public final class OpenXerox4Pull implements RestEngine {
             
             URL url = new URL(this.baseURL + service);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            /**
+             * Makes the connection accept any kind of certificate
+             */
+            conn.setHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String string, SSLSession ssls) {
+                    return true;
+                }
+            });
+
             conn.setRequestMethod("GET");
             log.info("doGet() about to send to " + baseURL + service + " :");
             BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -93,6 +105,15 @@ public final class OpenXerox4Pull implements RestEngine {
             
             URL url = new URL(this.baseURL + service);
             final HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            /**
+             * Makes the connection accept any kind of certificate
+             */
+            conn.setHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String string, SSLSession ssls) {
+                    return true;
+                }
+            });
             
             //HttpURLConnection conn = (HttpURLConnection) siteUrl.openConnection();
             conn.setRequestMethod("POST");
@@ -102,11 +123,11 @@ public final class OpenXerox4Pull implements RestEngine {
             conn.setDoOutput(true);
             conn.setDoInput(true);
             
-//            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
 
             // --------------------
             //access the required files and do the required networking as priviledged
             // NOT SURE IF THAT FIXES THE PROBLEM ACTUALLY
+//            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
             DataOutputStream out = (DataOutputStream)AccessController.doPrivileged(new PrivilegedAction() {
                 public Object run() {
                     try {
@@ -117,6 +138,7 @@ public final class OpenXerox4Pull implements RestEngine {
                     return null;
                 }
             });
+            // --------------------
             Set keys = data.keySet();
             Iterator keyIter = keys.iterator();
             String content = "";

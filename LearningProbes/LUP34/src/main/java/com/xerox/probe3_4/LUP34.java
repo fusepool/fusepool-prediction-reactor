@@ -4,10 +4,14 @@ import com.xerox.services.LUPEngine;
 import com.xerox.services.ClientEngine;
 import com.xerox.services.HubEngine;
 import com.xerox.services.RestEngine;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Iterator;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.NonLiteral;
 import org.apache.clerezza.rdf.core.Resource;
@@ -267,21 +271,31 @@ public class LUP34 implements LUPEngine
             }
             // 2.) Get rid of the guillemets
             content = content.replace('"', ' ');
-            // 3.) Trim
+            // 3.) Get rid of the line break
+            content = content.replace("\n", " ");
+            // 4.) Get rid of the tabs
+            content = content.replace("\t", " ");
+            // 5.) Trim
             content = content.trim();
             
             HashMap<String, String> paramsPrediction = new HashMap<String, String>();
+            String result;
             paramsPrediction.put("text", content);
             // 2.) Parsing the JSON returned
             log.info("Content for docURI: " + params.get("docURI") + " : [" + content + "]");
-            String result = clientPull.doPost("/fusepool/dopredictlabels/", paramsPrediction);
+            result = clientPull.doPost("/fusepool/dopredictlabels/", paramsPrediction);
             JSONObject jsonResult = new JSONObject(result);
             // 2. bis) TODO : Check if no label is returned !
             Iterator<String> it = jsonResult.keys();
             String labelList;
+            
             String firstLabelNotChanged = it.next();
             String firstLabel = firstLabelNotChanged.trim().replace('-', ' ');
             String firstConfidence = jsonResult.getString(firstLabelNotChanged);
+            /**
+             * TO CHANGE THE FORMAT OF THE RETURNED STRING, PLEASE SWITCH COMMENTS
+             * ON LINE (288,289) and (295,296)
+             */
 //            labelList = firstLabel;
              labelList = firstLabel + "__" + firstConfidence;
             while (it.hasNext()) {

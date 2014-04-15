@@ -24,7 +24,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
 import org.apache.http.*;
 
 /**
@@ -64,6 +66,7 @@ public final class OpenXerox4Push implements RestEngine {
     
     public String doGet(String service) throws Exception { // It will return JSON stuff later I think
         try {
+            
             /**
              * These 2 lines are about the http proxy in XRCE, it should be
              * removed when deployed on the platform
@@ -73,6 +76,16 @@ public final class OpenXerox4Push implements RestEngine {
             
             URL url = new URL(this.baseURL + service);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            /**
+             * Makes the connection accept any kind of certificate
+             */
+            conn.setHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String string, SSLSession ssls) {
+                    return true;
+                }
+            });
+            
             conn.setRequestMethod("GET");
             log.info("doGet() about to send to " + baseURL + service + " :");
             BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -99,6 +112,15 @@ public final class OpenXerox4Push implements RestEngine {
             
             URL url = new URL(this.baseURL + service);
             final HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            /**
+             * Makes the connection accept any kind of certificate
+             */
+            conn.setHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String string, SSLSession ssls) {
+                    return true;
+                }
+            });
             
             //HttpURLConnection conn = (HttpURLConnection) siteUrl.openConnection();
             conn.setRequestMethod("POST");
@@ -107,8 +129,8 @@ public final class OpenXerox4Push implements RestEngine {
             conn.setUseCaches (true);
             conn.setDoOutput(true);
             conn.setDoInput(true);
-            
-//            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
+
+            //DataOutputStream out = new DataOutputStream(conn.getOutputStream());
             // --------------------
             //access the required files and do the required networking as priviledged
             DataOutputStream out = (DataOutputStream)AccessController.doPrivileged(new PrivilegedAction() {
@@ -121,6 +143,7 @@ public final class OpenXerox4Push implements RestEngine {
                     return null;
                 }
             });
+            // --------------------
             Set keys = data.keySet();
             Iterator keyIter = keys.iterator();
             String content = "";
