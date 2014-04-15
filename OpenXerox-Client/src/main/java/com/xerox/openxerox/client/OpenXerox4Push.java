@@ -138,7 +138,7 @@ public final class OpenXerox4Push implements RestEngine {
                     try {
                         return new DataOutputStream(conn.getOutputStream());
                     } catch (IOException e) {
-                        log.error("OpenXerox4Pull cannot access the service ", e);
+                        log.error("OpenXerox4Push cannot access the service ", e);
                     }
                     return null;
                 }

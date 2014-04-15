@@ -99,7 +99,7 @@ public final class OpenXerox4Pull implements RestEngine {
     
     public String doPost(String service, HashMap<String, String> data) {
         try {
-            
+
 //            SocketAddress addr = new InetSocketAddress("cornillon.grenoble.xrce.xerox.com", 8000);
 //            Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
             
@@ -119,13 +119,15 @@ public final class OpenXerox4Pull implements RestEngine {
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", 
                    "application/x-www-form-urlencoded");
-            conn.setUseCaches (true);
+            conn.setUseCaches (false);
             conn.setDoOutput(true);
             conn.setDoInput(true);
             
-            //DataOutputStream out = new DataOutputStream(conn.getOutputStream());
+
             // --------------------
             //access the required files and do the required networking as priviledged
+            // NOT SURE IF THAT FIXES THE PROBLEM ACTUALLY
+//            DataOutputStream out = new DataOutputStream(conn.getOutputStream());
             DataOutputStream out = (DataOutputStream)AccessController.doPrivileged(new PrivilegedAction() {
                 public Object run() {
                     try {
@@ -147,6 +149,7 @@ public final class OpenXerox4Pull implements RestEngine {
                 }
                 content += key + "=" + URLEncoder.encode(data.get(key), "UTF-8");
             }
+            log.info(content);
             out.writeBytes(content);
             out.flush();
             out.close();

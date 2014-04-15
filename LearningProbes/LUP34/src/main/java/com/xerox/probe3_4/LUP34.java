@@ -260,7 +260,7 @@ public class LUP34 implements LUPEngine
              * 2.) Call /fusepool/dopredictlabels/
              * 3.) Parse the String returned to replace "-" with " " !
              */
-            log.info("LUP34 PREDICT()");
+            log.info("LUP34 PREDICT");
             Iterator<Triple> itTriple = contentstore.filter(new UriRef(params.get("docURI")),
                             new UriRef("http://rdfs.org/sioc/ns#content"),
                             null);
@@ -288,8 +288,10 @@ public class LUP34 implements LUPEngine
             // 2. bis) TODO : Check if no label is returned !
             Iterator<String> it = jsonResult.keys();
             String labelList;
-            String firstLabel = it.next().trim().replace('-', ' ');
-            String firstConfidence = jsonResult.getString(firstLabel);
+            
+            String firstLabelNotChanged = it.next();
+            String firstLabel = firstLabelNotChanged.trim().replace('-', ' ');
+            String firstConfidence = jsonResult.getString(firstLabelNotChanged);
             /**
              * TO CHANGE THE FORMAT OF THE RETURNED STRING, PLEASE SWITCH COMMENTS
              * ON LINE (288,289) and (295,296)

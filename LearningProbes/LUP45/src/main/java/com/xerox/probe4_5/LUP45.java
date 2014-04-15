@@ -1,10 +1,16 @@
 package com.xerox.probe4_5;
 
+import com.xerox.services.ClientEngine;
+import com.xerox.services.HubEngine;
 import com.xerox.services.LUPEngine;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import com.xerox.services.RestEngine;
+import java.io.ByteArrayOutputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+
+import eu.fusepool.ecs.ontologies.ECS;
+import java.util.ArrayList;
+import org.apache.clerezza.rdf.core.BNode;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -15,7 +21,15 @@ import org.apache.clerezza.rdf.core.Triple;
 import org.apache.clerezza.rdf.core.UriRef;
 import org.apache.clerezza.rdf.core.access.TcManager;
 import org.apache.clerezza.rdf.core.event.FilterTriple;
+import org.apache.clerezza.rdf.core.event.GraphEvent;
 import org.apache.clerezza.rdf.core.event.GraphListener;
+import org.apache.clerezza.rdf.core.impl.SimpleMGraph;
+import org.apache.clerezza.rdf.core.serializedform.Serializer;
+import org.apache.clerezza.rdf.core.serializedform.SupportedFormat;
+import org.apache.clerezza.rdf.ontologies.RDF;
+import org.apache.clerezza.rdf.utils.GraphNode;
+import org.apache.clerezza.rdf.utils.RdfList;
+import org.apache.clerezza.rdf.utils.graphnodeprovider.GraphNodeProvider;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -40,148 +54,41 @@ public class LUP45 implements LUPEngine
      */
     @Reference
     private TcManager tcManager;
+    
+    @Reference
+    private GraphNodeProvider graphNodeProvider;
+    
+    @Reference
+    private Serializer serializer;
     /**
      * Uri Reference to access the AnnoStore (Listener)
      */
     private UriRef ANNOTATION_GRAPH_NAME = new UriRef("urn:x-localinstance:/fusepool/annotation.graph");
     private MGraph annostore;
-    private UriRef CONTENTSTORE_GRAPH_NAME = new UriRef("urn:x-localinstance:/content.graph");
-    private MGraph contentstore;
     
-    private void ETL(Iterator<Triple> it, BufferedWriter relationsWriter) throws IOException {
-            while (it.hasNext()) {
-                Triple triple = it.next();
-                NonLiteral docURINonLiteral = (NonLiteral)triple.getSubject();
-                String docURI = triple.getSubject().toString();
-                /**
-                 * x.) Fetch Titles (ontology: <http://purl.org/dc/terms/title>)
-                 * y.) Fetch Abstract (ontology: <http://purl.org/dc/terms/abstract>)
-                 * z.) Fetch Content (ontology: <http://rdfs.org/sioc/ns#content>)
-                 *  z.1.) Remove ^^<http://www.w3.org/2001/XMLSchema#string>
-                 *  z.2.) Remove ""
-                 * a.) Fetch Author(s) (ontology: <http://www.patexpert.org/ontologies/pmo.owl#inventor>)
-                 * b.) Fetch Labels (ontology: <http://www.patexpert.org/ontologies/pmo.owl#classifiedAs>)
-                 * c.) Fetch Organisation (ontology: ???)
-                 */
-                // x.) Fetch Titles
-                Iterator<Triple> itTitles = contentstore.filter(docURINonLiteral,
-                        new UriRef("http://purl.org/dc/terms/title"),
-                        null);
-                while (itTitles.hasNext()) {
-                    Triple titleTriple = itTitles.next();
-                    String title = titleTriple.getObject().toString();
-                    relationsWriter.write(docURI + " <hasTitle> " + title + " .\n");
-                }
-                // y.) Fetch Abstract
-                Iterator<Triple> itAbstract = contentstore.filter(docURINonLiteral,
-                        new UriRef("http://purl.org/dc/terms/abstract"),
-                        null);
-                while (itAbstract.hasNext()) {
-                    Triple abstractTriple = itAbstract.next();
-                    String abstracts = abstractTriple.getObject().toString();
-                    abstracts = abstracts.replace("\n", " ");
-                    relationsWriter.write(docURI + " <hasAbstract> " + abstracts + " .\n");
-                }
-                // z.) Fetch Content
-                Iterator<Triple> itContent = contentstore.filter(docURINonLiteral,
-                        new UriRef("http://rdfs.org/sioc/ns#content"),
-                        null);
-                while (itContent.hasNext()) {
-                    Triple contentTriple = itContent.next();
-                    String content = contentTriple.getObject().toString();
-                    if (content.contains("^^")) {
-                        content = content.substring(0, content.indexOf("^^"));
-                        content = content.replace("\n", " ");
-                    }
-                    relationsWriter.write(docURI + " <hasContent> " + content + " .\n");
-                }
-                // a.) Fetch Author(s) & Organisations
-                Iterator<Triple> itInventor = contentstore.filter(docURINonLiteral,
-                        new UriRef("http://purl.org/dc/elements/1.1/subject"),
-                        null);
-                while (itInventor.hasNext()) {
-                    /**
-                     * For each "Inventor" check the rdfs:type to see if it's an author
-                     */
-                    Triple tripleInventor = itInventor.next();
-                    Resource Inventor = tripleInventor.getObject();
-                    String inventorString = Inventor.toString();
-                    
-                    // 1.) First loop : if (human)
-                    Iterator<Triple> itInventorType = contentstore.filter((NonLiteral)Inventor,
-                            new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-                            new UriRef("http://xmlns.com/foaf/0.1/Person"));
-                    if (itInventorType.hasNext()) {
-                        Iterator<Triple> itInventorTypeHuman = contentstore.filter((NonLiteral)Inventor,
-                                new UriRef("http://www.w3.org/2000/01/rdf-schema#label"),
-                                null);
-                        while (itInventorTypeHuman.hasNext()) {
-                            String authorName = itInventorTypeHuman.next().getObject().toString();
-                            relationsWriter.write(docURI + " <hasAuthor> " + authorName + " .\n");
-                        }
-                    } else {
-                        // 2.) First loop : if (human)
-                        Iterator<Triple> itInventorTypeOrg = contentstore.filter((NonLiteral)Inventor,
-                                new UriRef("http://www.w3.org/2000/01/rdf-schema#label"),
-                                null);
-                        while (itInventorTypeOrg.hasNext()) {
-                            String orgName = itInventorTypeOrg.next().getObject().toString();
-                            relationsWriter.write(docURI + " <hasOrg> " + orgName + " .\n");
-                        }
-                    }
-                }// a.bis.) Fetch Author(s) & Organisations (WITH 1.0 ONTOLOGY)
-                itInventor = contentstore.filter(docURINonLiteral,
-                        new UriRef("http://purl.org/dc/terms/subject"),
-                        null);
-                while (itInventor.hasNext()) {
-                    /**
-                     * For each "Inventor" check the rdfs:type to see if it's an author
-                     */
-                    Triple tripleInventor = itInventor.next();
-                    Resource Inventor = tripleInventor.getObject();
-                    String inventorString = Inventor.toString();
-                    
-                    // 1.) First loop : if (human)
-                    Iterator<Triple> itInventorType = contentstore.filter((NonLiteral)Inventor,
-                            new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-                            new UriRef("http://xmlns.com/foaf/0.1/Person"));
-                    if (itInventorType.hasNext()) {
-                        Iterator<Triple> itInventorTypeHuman = contentstore.filter((NonLiteral)Inventor,
-                                new UriRef("http://www.w3.org/2000/01/rdf-schema#label"),
-                                null);
-                        while (itInventorTypeHuman.hasNext()) {
-                            String authorName = itInventorTypeHuman.next().getObject().toString();
-                            relationsWriter.write(docURI + " <hasAuthor> " + authorName + " .\n");
-                        }
-                    } else {
-                        // 2.) First loop : if (human)
-                        Iterator<Triple> itInventorTypeOrg = contentstore.filter((NonLiteral)Inventor,
-                                new UriRef("http://www.w3.org/2000/01/rdf-schema#label"),
-                                null);
-                        while (itInventorTypeOrg.hasNext()) {
-                            String orgName = itInventorTypeOrg.next().getObject().toString();
-                            relationsWriter.write(docURI + " <hasOrg> " + orgName + " .\n");
-                        }
-                    }
-                }
-                // b.) Fetch Label(s)
-                Iterator<Triple> itLabels = contentstore.filter(docURINonLiteral,
-                        new UriRef("http://www.patexpert.org/ontologies/pmo.owl#classifiedAs"),
-                        null);
-                while (itLabels.hasNext()) {
-                    Triple tripleLabel = itLabels.next();
-                    Iterator<Triple> itLabelCode = contentstore.filter((NonLiteral)tripleLabel.getObject(),
-                            new UriRef("http://www.w3.org/2004/02/skos/core#notation"),
-                            null);
-                    while (itLabelCode.hasNext()) {
-                        Triple tripleLabelCode = itLabelCode.next();
-                        String labelCode = tripleLabelCode.getObject().toString();
-//                        log.info("adding relation " + docURI + " hasLabel " + labelCode + "to file.");
-                        relationsWriter.write(docURI + " <hasLabel> " + tripleLabelCode.getObject().toString() + " .\n");
-                    }
-                }
-            }
+//    private UriRef CONTENT_GRAPH_NAME = new UriRef("urn:x-localinstance:/fusepool/content.graph");
+//    private MGraph annostore;
+    
+    private class Listener4_5 implements GraphListener {
+
+        public void graphChanged(List<GraphEvent> list) {
+            log.info("graphChanged");
+            for (GraphEvent e : list) {}
+        }
     }
+    
+    private LUP45.Listener4_5 listener4_5;
+    private FilterTriple filter4_5;
+    private long delay4_5;
+    
+    @Reference
+    private ClientEngine openXeroxClient;
+    
+    private RestEngine clientPush;
+    private RestEngine clientPull;
+    
+    @Reference
+    private HubEngine predictionHub;
     
     @Activate
     private void activate() {
@@ -192,182 +99,22 @@ public class LUP45 implements LUPEngine
          */
         // 1.) Fetch graphs
         annostore = tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
-        contentstore = tcManager.getMGraph(CONTENTSTORE_GRAPH_NAME);
-        // 2.) Create files
-        BufferedWriter relationsPatentsWriter = null;
-        BufferedWriter relationsPubmedsWriter = null;
-        try {
-            // Create dump files for (entities / relations)
-            File relationsFilePatents = new File("patent_RELATIONS.ttl");
-            File relationsFilePubmed = new File("pubmed_RELATIONS.ttl");
-
-            // This will output the full path where the file will be written to...
-            log.info(relationsFilePatents.getCanonicalPath());
-            log.info(relationsFilePubmed.getCanonicalPath());
-            
-            // 3.) ETL
-            relationsPatentsWriter = new BufferedWriter(new FileWriter(relationsFilePatents));
-            relationsPubmedsWriter = new BufferedWriter(new FileWriter(relationsFilePubmed));
-            
-            // 3.2) PubMed ETL
-            Iterator<Triple> itPubMed = contentstore.filter(null,
-                    new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-                    new UriRef("http://purl.org/ontology/bibo/Document"));
-            this.ETL(itPubMed, relationsPubmedsWriter);
-            // 3.1) Patent ETL
-            Iterator<Triple> itPatent = contentstore.filter(null,
-                    new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-                    new UriRef("http://www.patexpert.org/ontologies/pmo.owl#PatentPublication"));
-            this.ETL(itPatent, relationsPatentsWriter);
-            
-//            while (itPatent.hasNext()) {
-//                Triple triplePatent = itPatent.next();
-//                String docURI = triplePatent.getSubject().toString();
-//                /**
-//                 * x.) Fetch Titles (ontology: <http://purl.org/dc/terms/title>)
-//                 * y.) Fetch Abstract (ontology: <http://purl.org/dc/terms/abstract>)
-//                 * z.) Fetch Content (ontology: <http://rdfs.org/sioc/ns#content>)
-//                 *  z.1.) Remove ^^<http://www.w3.org/2001/XMLSchema#string>
-//                 *  z.2.) Remove ""
-//                 * a.) Fetch Author(s) (ontology: <http://www.patexpert.org/ontologies/pmo.owl#inventor>)
-//                 * b.) Fetch Labels (ontology: <http://www.patexpert.org/ontologies/pmo.owl#classifiedAs>)
-//                 * c.) Fetch Organisation (ontology: ???)
-//                 */
-//                // x.) Fetch Titles
-//                Iterator<Triple> itTitles = contentstore.filter((NonLiteral)triplePatent.getSubject(),
-//                        new UriRef("http://purl.org/dc/terms/title"),
-//                        null);
-//                while (itTitles.hasNext()) {
-//                    Triple titleTriple = itTitles.next();
-//                    String title = titleTriple.getObject().toString();
-//                    relationsWriter.write(docURI + " <hasTitle> " + title + " .\n");
-//                }
-//                // y.) Fetch Abstract
-//                Iterator<Triple> itAbstract = contentstore.filter((NonLiteral)triplePatent.getSubject(),
-//                        new UriRef("http://purl.org/dc/terms/abstract"),
-//                        null);
-//                while (itAbstract.hasNext()) {
-//                    Triple abstractTriple = itAbstract.next();
-//                    String abstracts = abstractTriple.getObject().toString();
-//                    abstracts = abstracts.replace("\n", " ");
-//                    relationsWriter.write(docURI + " <hasAbstract> " + abstracts + " .\n");
-//                }
-//                // z.) Fetch Content
-//                Iterator<Triple> itContent = contentstore.filter((NonLiteral)triplePatent.getSubject(),
-//                        new UriRef("http://rdfs.org/sioc/ns#content"),
-//                        null);
-//                while (itContent.hasNext()) {
-//                    Triple contentTriple = itContent.next();
-//                    String content = contentTriple.getObject().toString();
-//                    if (content.contains("^^")) {
-//                        content = content.substring(0, content.indexOf("^^"));
-//                        content = content.replace("\n", " ");
-//                    }
-//                    relationsWriter.write(docURI + " <hasContent> " + content + " .\n");
-//                }
-//                // a.) Fetch Author(s) & Organisations
-//                Iterator<Triple> itInventor = contentstore.filter((NonLiteral)triplePatent.getSubject(),
-//                        new UriRef("http://purl.org/dc/elements/1.1/subject"),
-//                        null);
-//                while (itInventor.hasNext()) {
-//                    /**
-//                     * For each "Inventor" check the rdfs:type to see if it's an author
-//                     */
-//                    Triple tripleInventor = itInventor.next();
-//                    Resource Inventor = tripleInventor.getObject();
-//                    String inventorString = Inventor.toString();
-//                    
-//                    // 1.) First loop : if (human)
-//                    Iterator<Triple> itInventorType = contentstore.filter((NonLiteral)Inventor,
-//                            new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-//                            new UriRef("http://xmlns.com/foaf/0.1/Person"));
-//                    if (itInventorType.hasNext()) {
-//                        Iterator<Triple> itInventorTypeHuman = contentstore.filter((NonLiteral)Inventor,
-//                                new UriRef("http://www.w3.org/2000/01/rdf-schema#label"),
-//                                null);
-//                        while (itInventorTypeHuman.hasNext()) {
-//                            String authorName = itInventorTypeHuman.next().getObject().toString();
-//                            relationsWriter.write(docURI + " <hasAuthor> " + authorName + " .\n");
-//                        }
-//                    } else {
-//                        // 2.) First loop : if (human)
-//                        Iterator<Triple> itInventorTypeOrg = contentstore.filter((NonLiteral)Inventor,
-//                                new UriRef("http://www.w3.org/2000/01/rdf-schema#label"),
-//                                null);
-//                        while (itInventorTypeOrg.hasNext()) {
-//                            String orgName = itInventorTypeOrg.next().getObject().toString();
-//                            relationsWriter.write(docURI + " <hasOrg> " + orgName + " .\n");
-//                        }
-//                    }
-//                }// a.bis.) Fetch Author(s) & Organisations (WITH 1.0 ONTOLOGY)
-//                itInventor = contentstore.filter((NonLiteral)triplePatent.getSubject(),
-//                        new UriRef("http://purl.org/dc/terms/subject"),
-//                        null);
-//                while (itInventor.hasNext()) {
-//                    /**
-//                     * For each "Inventor" check the rdfs:type to see if it's an author
-//                     */
-//                    Triple tripleInventor = itInventor.next();
-//                    Resource Inventor = tripleInventor.getObject();
-//                    String inventorString = Inventor.toString();
-//                    
-//                    // 1.) First loop : if (human)
-//                    Iterator<Triple> itInventorType = contentstore.filter((NonLiteral)Inventor,
-//                            new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-//                            new UriRef("http://xmlns.com/foaf/0.1/Person"));
-//                    if (itInventorType.hasNext()) {
-//                        Iterator<Triple> itInventorTypeHuman = contentstore.filter((NonLiteral)Inventor,
-//                                new UriRef("http://www.w3.org/2000/01/rdf-schema#label"),
-//                                null);
-//                        while (itInventorTypeHuman.hasNext()) {
-//                            String authorName = itInventorTypeHuman.next().getObject().toString();
-//                            relationsWriter.write(docURI + " <hasAuthor> " + authorName + " .\n");
-//                        }
-//                    } else {
-//                        // 2.) First loop : if (human)
-//                        Iterator<Triple> itInventorTypeOrg = contentstore.filter((NonLiteral)Inventor,
-//                                new UriRef("http://www.w3.org/2000/01/rdf-schema#label"),
-//                                null);
-//                        while (itInventorTypeOrg.hasNext()) {
-//                            String orgName = itInventorTypeOrg.next().getObject().toString();
-//                            relationsWriter.write(docURI + " <hasOrg> " + orgName + " .\n");
-//                        }
-//                    }
-//                }
-//                // b.) Fetch Label(s)
-//                Iterator<Triple> itLabels = contentstore.filter((NonLiteral)triplePatent.getSubject(),
-//                        new UriRef("http://www.patexpert.org/ontologies/pmo.owl#classifiedAs"),
-//                        null);
-//                while (itLabels.hasNext()) {
-//                    Triple tripleLabel = itLabels.next();
-//                    Iterator<Triple> itLabelCode = contentstore.filter((NonLiteral)tripleLabel.getObject(),
-//                            new UriRef("http://www.w3.org/2004/02/skos/core#notation"),
-//                            null);
-//                    while (itLabelCode.hasNext()) {
-//                        Triple tripleLabelCode = itLabelCode.next();
-//                        String labelCode = tripleLabelCode.getObject().toString();
-////                        log.info("adding relation " + docURI + " hasLabel " + labelCode + "to file.");
-//                        relationsWriter.write(docURI + " <hasLabel> " + tripleLabelCode.getObject().toString() + " .\n");
-//                    }
-//                }
-//            }
-//            
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                // Close the writer regardless of what happens...
-                relationsPatentsWriter.close();
-                relationsPubmedsWriter.close();
-            } catch (Exception e) {
-            }
-        }
+        // 2.) Instanciating any listener, filter, delay and web access needed
+        this.listener4_5 = new LUP45.Listener4_5();
+        this.filter4_5 = new FilterTriple(
+                null ,
+                null ,
+                new UriRef("http://fusepool.eu/ontologies/annostore#EntitiesAnnotation"));
+        // this.filter3_4 = new FilterTriple(null, null, null);
+        this.delay4_5 = 5000;
+        this.clientPush = openXeroxClient.getPush();
+        this.clientPull = openXeroxClient.getPull();
+        this.predictionHub.register(this);
     }
     
     @Deactivate
     private void deactivator() {
-        // Nothing to do here
+        this.predictionHub.unregister(this);
     }
 
     public String getName() {
@@ -375,27 +122,20 @@ public class LUP45 implements LUPEngine
     }
 
     public String getDescription() {
-        return "LUP module not implemented yet, which should provide some LUP services for the Adaptative Layout T4.5 task.";
+        return "LUP module providing the needed learning-predicting services for "
+                + "task T4.5. Returns a list of persons close to the query.";
     }
     
     public GraphListener getListener() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return this.listener4_5;
     }
 
     public FilterTriple getFilter() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return this.filter4_5;
     }
 
     public long getDelay() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    public void BI(String modification) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    public void updateModels() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return this.delay4_5;
     }
     
     /**
@@ -403,16 +143,76 @@ public class LUP45 implements LUPEngine
      */
     public void save() {}
     public void load() {}
-    
-    public String predict(String param) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
 
     public void updateModels(HashMap<String, String> params) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        log.info("updateModels()");
     }
 
     public String predict(HashMap<String, String> params) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        try {
+            /**
+             * 1.) Fetch user-query
+             * 2.) Craft SPARQL query
+             * 3.) Send to OpenXerox through PULL bundle
+             * 4.) Create graph using URIs
+             */
+            for (String key: params.keySet()) {
+                log.info("key: " + key);
+            }
+            String search = params.get("search");
+            Integer offset = Integer.parseInt(params.get("offset"));
+            Integer maxFacets = Integer.parseInt(params.get("maxFacets"));
+            Integer items = Integer.parseInt(params.get("items"));
+            /**
+             * ... Send things and get back <LIST OF URIS> from OpenXerox
+             * TESTING WITH : <http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810>
+             * AND :<http://fusepool.info/id/688d7156-09d7-452f-9c64-4ee9676d34bb>
+             */
+            ArrayList<UriRef> peopleList = new ArrayList<UriRef>();
+            peopleList.add(new UriRef("http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810"));
+            peopleList.add(new UriRef("http://fusepool.info/id/688d7156-09d7-452f-9c64-4ee9676d34bb"));
+            final Integer nbResource = peopleList.size();
+            MGraph resultGraph = new SimpleMGraph();
+            NonLiteral listResource = new BNode();
+            RdfList contentList = new RdfList(listResource, resultGraph);
+            for (UriRef foundResource: peopleList) {
+//                final UriRef foundResource = new UriRef("http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810");
+                final GraphNode node = graphNodeProvider.getLocal(foundResource);
+                resultGraph.addAll(node.getNodeContext());
+
+                /**
+                 * Adding contexts for all 'addresses'
+                 */
+                Iterator<Triple> itResources =
+                        resultGraph.filter(foundResource, new UriRef("http://schema.org/address"), null);
+                log.info("trying to find some resources...");
+                while (itResources.hasNext()) {
+                    Resource addressResource = itResources.next().getObject();
+                    log.info("found address resource: " + addressResource.toString());
+                    GraphNode addressNode = graphNodeProvider.getLocal((UriRef)addressResource);
+                    resultGraph.addAll(addressNode.getNodeContext());
+                }
+
+                contentList.add(foundResource);
+
+            }
+            GraphNode contentStoreView = new GraphNode(new UriRef("http://platform.fusepool.info/ecs/?search="+search+"&offset="+offset+"&maxFacets="+maxFacets+"&items="+items), resultGraph);
+            contentStoreView.addProperty(RDF.type, ECS.ContentStoreView);
+            contentStoreView.addPropertyValue(ECS.contentsCount, nbResource);
+            contentStoreView.addProperty(ECS.contents, listResource);
+//            contentStoreView.addProperty(ECS.facet, listResource);
+            
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            serializer.serialize(baos, resultGraph, SupportedFormat.TURTLE);
+            
+            log.info("\n" +baos.toString());
+            
+            
+            
+            return new String(baos.toByteArray(), "utf-8");
+        } catch (UnsupportedEncodingException ex) {
+            log.error("Error");
+            return "__error__";
+        }
     }
 }
