@@ -2,7 +2,6 @@ package com.xerox.predictionhub;
 
 import com.xerox.services.HubEngine;
 import com.xerox.services.LUPEngine;
-import eu.fusepool.annostore.AnnoStore;
 
 import java.io.IOException;
 import java.util.HashMap;
