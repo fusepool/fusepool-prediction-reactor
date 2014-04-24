@@ -26,6 +26,7 @@ import org.apache.clerezza.rdf.core.NonLiteral;
 import org.apache.clerezza.rdf.core.Resource;
 import org.apache.clerezza.rdf.core.Triple;
 import org.apache.clerezza.rdf.core.UriRef;
+import org.apache.clerezza.rdf.core.access.LockableMGraph;
 import org.apache.clerezza.rdf.core.access.TcManager;
 import org.apache.clerezza.rdf.core.event.FilterTriple;
 import org.apache.clerezza.rdf.core.event.GraphListener;
@@ -61,6 +62,10 @@ public class PatentsETL
      */
     @Reference
     private TcManager tcManager;
+    @Reference(target = "(name=urn:x-localinstance:/fusepool/annotation.graph)")
+    private LockableMGraph annoGraph; 
+    @Reference(target = "(name=urn:x-localinstance:/content.graph)")
+    private LockableMGraph ecsGraph; 
     /**
      * Uri Reference to access the AnnoStore (Listener)
      */

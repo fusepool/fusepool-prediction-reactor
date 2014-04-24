@@ -13,12 +13,15 @@ import java.util.ArrayList;
 import org.apache.clerezza.rdf.core.BNode;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.NonLiteral;
 import org.apache.clerezza.rdf.core.Resource;
 import org.apache.clerezza.rdf.core.Triple;
 import org.apache.clerezza.rdf.core.UriRef;
+import org.apache.clerezza.rdf.core.access.LockableMGraph;
 import org.apache.clerezza.rdf.core.access.TcManager;
 import org.apache.clerezza.rdf.core.event.FilterTriple;
 import org.apache.clerezza.rdf.core.event.GraphEvent;
@@ -35,6 +38,8 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -54,6 +59,8 @@ public class LUP45 implements LUPEngine
      */
     @Reference
     private TcManager tcManager;
+    @Reference(target = "(name=urn:x-localinstance:/fusepool/annotation.graph)")
+    private LockableMGraph annoGraph; 
     
     @Reference
     private GraphNodeProvider graphNodeProvider;
@@ -73,7 +80,6 @@ public class LUP45 implements LUPEngine
 
         public void graphChanged(List<GraphEvent> list) {
             log.info("graphChanged");
-            for (GraphEvent e : list) {}
         }
     }
     
@@ -152,9 +158,8 @@ public class LUP45 implements LUPEngine
         try {
             /**
              * 1.) Fetch user-query
-             * 2.) Craft SPARQL query
-             * 3.) Send to OpenXerox through PULL bundle
-             * 4.) Create graph using URIs
+             * 2.) Send to OpenXerox through PULL bundle
+             * 3.) Create graph using URIs
              */
             for (String key: params.keySet()) {
                 log.info("key: " + key);
@@ -163,14 +168,29 @@ public class LUP45 implements LUPEngine
             Integer offset = Integer.parseInt(params.get("offset"));
             Integer maxFacets = Integer.parseInt(params.get("maxFacets"));
             Integer items = Integer.parseInt(params.get("items"));
+            
+            HashMap<String, String> paramsOpenXerox = new HashMap<String, String>();
+            paramsOpenXerox.put("query", search);
+            JSONObject jsonResultObject = new JSONObject(clientPull.doPost("https://psparql.services.open.xerox.com/getauthors/", paramsOpenXerox));
+            JSONArray jsonResultArray = jsonResultObject.getJSONArray("AuthorList");
+            log.info(jsonResultObject.toString());
             /**
              * ... Send things and get back <LIST OF URIS> from OpenXerox
              * TESTING WITH : <http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810>
              * AND :<http://fusepool.info/id/688d7156-09d7-452f-9c64-4ee9676d34bb>
              */
             ArrayList<UriRef> peopleList = new ArrayList<UriRef>();
-            peopleList.add(new UriRef("http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810"));
-            peopleList.add(new UriRef("http://fusepool.info/id/688d7156-09d7-452f-9c64-4ee9676d34bb"));
+            for (Integer index = 0 ; index < jsonResultArray.length() ; index++) {
+                UriRef newUri = new UriRef(jsonResultArray.getString(index).substring(1, jsonResultArray.getString(index).length()-1));
+                log.info("looking for people with uri: " + newUri.toString());
+                peopleList.add(newUri);
+            }
+            /**
+             * Test persons
+             */
+//            peopleList.add(new UriRef("http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810"));
+//            peopleList.add(new UriRef("http://fusepool.info/id/688d7156-09d7-452f-9c64-4ee9676d34bb"));
+            
             final Integer nbResource = peopleList.size();
             MGraph resultGraph = new SimpleMGraph();
             NonLiteral listResource = new BNode();
@@ -178,22 +198,27 @@ public class LUP45 implements LUPEngine
             for (UriRef foundResource: peopleList) {
 //                final UriRef foundResource = new UriRef("http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810");
                 final GraphNode node = graphNodeProvider.getLocal(foundResource);
+                log.info("graphNodeProvider.getLocal(): " + node.toString());
                 resultGraph.addAll(node.getNodeContext());
 
                 /**
                  * Adding contexts for all 'addresses'
+                 * TODO: spotted a addressResource looking like: urn:x-temp:/id/0deff2f2-4de0-46d5-9fce-c91030014a6e
+                 * Not good, to be fixed
                  */
-                Iterator<Triple> itResources =
-                        resultGraph.filter(foundResource, new UriRef("http://schema.org/address"), null);
-                log.info("trying to find some resources...");
-                while (itResources.hasNext()) {
-                    Resource addressResource = itResources.next().getObject();
-                    log.info("found address resource: " + addressResource.toString());
-                    GraphNode addressNode = graphNodeProvider.getLocal((UriRef)addressResource);
-                    resultGraph.addAll(addressNode.getNodeContext());
-                }
-
-                contentList.add(foundResource);
+//                Iterator<Triple> itResources =
+//                        resultGraph.filter(foundResource, new UriRef("http://schema.org/address"), null);
+//                log.info("trying to find some resources...");
+//                while (itResources.hasNext()) {
+//                    Resource addressResource = itResources.next().getObject();
+//                    log.info("found address resource: " + addressResource.toString());
+//                    GraphNode addressNode = graphNodeProvider.getLocal((UriRef)addressResource);
+//                    resultGraph.addAll(addressNode.getNodeContext());
+//                }
+//                
+//                //Adding Facets for organizations
+//                
+//                contentList.add(foundResource);
 
             }
             GraphNode contentStoreView = new GraphNode(new UriRef("http://platform.fusepool.info/ecs/?search="+search+"&offset="+offset+"&maxFacets="+maxFacets+"&items="+items), resultGraph);
@@ -210,8 +235,8 @@ public class LUP45 implements LUPEngine
             
             
             return new String(baos.toByteArray(), "utf-8");
-        } catch (UnsupportedEncodingException ex) {
-            log.error("Error");
+        } catch (Exception ex) {
+            log.error("Error", ex);
             return "__error__";
         }
     }
