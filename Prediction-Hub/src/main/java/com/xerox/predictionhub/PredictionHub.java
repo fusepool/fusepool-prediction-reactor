@@ -2,6 +2,7 @@ package com.xerox.predictionhub;
 
 import com.xerox.services.HubEngine;
 import com.xerox.services.LUPEngine;
+import eu.fusepool.annostore.AnnoStore;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import javax.ws.rs.Path;
 
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.UriRef;
+import org.apache.clerezza.rdf.core.access.LockableMGraph;
 import org.apache.clerezza.rdf.core.access.TcManager;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -38,6 +40,8 @@ public class PredictionHub implements HubEngine {
      */
     @Reference
     private TcManager tcManager;
+    @Reference(target = "(name=urn:x-localinstance:/fusepool/annotation.graph)")
+    private LockableMGraph annoGraph; 
     /**
      * Uri Reference to access the AnnoStore (Listener)
      */
