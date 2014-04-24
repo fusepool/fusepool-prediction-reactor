@@ -102,8 +102,12 @@ public final class OpenXerox4Pull implements RestEngine {
 
 //            SocketAddress addr = new InetSocketAddress("cornillon.grenoble.xrce.xerox.com", 8000);
 //            Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
-            
-            URL url = new URL(this.baseURL + service);
+            URL url;
+            if (service.contains("psparql")) {
+                url = new URL(service);
+            } else {
+                url = new URL(this.baseURL + service);
+            }
             final HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
             /**
              * Makes the connection accept any kind of certificate

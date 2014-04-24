@@ -5,29 +5,19 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.codehaus.jettison.json.JSONObject;
-
-import java.net.SocketAddress;
-import java.net.Proxy;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.logging.Level;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
-import org.apache.http.*;
 
 /**
  * This singleton class is used by the probes mainly in order to update
