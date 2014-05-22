@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.clerezza.rdf.core.Literal;
 
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.NonLiteral;
@@ -195,6 +196,7 @@ public class LUP45 implements LUPEngine
             MGraph resultGraph = new SimpleMGraph();
             NonLiteral listResource = new BNode();
             RdfList contentList = new RdfList(listResource, resultGraph);
+            log.info("peopleList size: " + peopleList.size());
             for (UriRef foundResource: peopleList) {
 //                final UriRef foundResource = new UriRef("http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810");
                 final GraphNode node = graphNodeProvider.getLocal(foundResource);
@@ -206,19 +208,39 @@ public class LUP45 implements LUPEngine
                  * TODO: spotted a addressResource looking like: urn:x-temp:/id/0deff2f2-4de0-46d5-9fce-c91030014a6e
                  * Not good, to be fixed
                  */
-//                Iterator<Triple> itResources =
-//                        resultGraph.filter(foundResource, new UriRef("http://schema.org/address"), null);
-//                log.info("trying to find some resources...");
-//                while (itResources.hasNext()) {
-//                    Resource addressResource = itResources.next().getObject();
-//                    log.info("found address resource: " + addressResource.toString());
-//                    GraphNode addressNode = graphNodeProvider.getLocal((UriRef)addressResource);
-//                    resultGraph.addAll(addressNode.getNodeContext());
-//                }
-//                
-//                //Adding Facets for organizations
-//                
-//                contentList.add(foundResource);
+                Iterator<Triple> itAddressResources =
+                        resultGraph.filter(foundResource, new UriRef("http://schema.org/address"), null);
+                log.info("trying to find some address...");
+                while (itAddressResources.hasNext()) {
+                    Resource addressResource = itAddressResources.next().getObject();
+                    log.info("found address: " + addressResource.toString());
+                    GraphNode addressNode = graphNodeProvider.getLocal((UriRef)addressResource);
+                    resultGraph.addAll(addressNode.getNodeContext());
+                }
+                
+                Iterator<Triple> itPatentsResources =
+                        resultGraph.filter(foundResource, new UriRef("http://www.patexpert.org/ontologies/pmo.owl#inventorOf"), null);
+                log.info("trying to find some patents...");
+                while (itPatentsResources.hasNext()) {
+                    Resource patentResource = itPatentsResources.next().getObject();
+                    log.info("found patent: " + patentResource.toString());
+                    GraphNode patentsNode = graphNodeProvider.getLocal((UriRef)patentResource);
+
+                    /**
+                     * Reto's code
+                     */
+//                    Iterator<Literal> itLiteral = patentsNode.getObjectNodes(new UriRef("http://www.patexpert.org/ontologies/pmo.owl#inventorOf")).next().getLiterals(new UriRef("http://purl.org/dc/terms/title"));
+//                    while (itLiteral.hasNext()) {
+//                        Literal titleLiteral = itLiteral.next();
+//                        log.info("RETO'S CODE: " + titleLiteral.toString());
+//                    }
+                    
+                    resultGraph.addAll(patentsNode.getNodeContext());
+                        
+                }
+                //Adding Facets for organizations
+                
+                contentList.add(foundResource);
 
             }
             GraphNode contentStoreView = new GraphNode(new UriRef("http://platform.fusepool.info/ecs/?search="+search+"&offset="+offset+"&maxFacets="+maxFacets+"&items="+items), resultGraph);
