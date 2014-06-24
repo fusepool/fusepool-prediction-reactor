@@ -1,9 +1,9 @@
 package com.xerox.probe4_5;
 
-import com.xerox.xi.services.ClientEngine;
-import com.xerox.xi.services.HubEngine;
-import com.xerox.xi.services.LUPEngine;
-import com.xerox.xi.services.RestEngine;
+import com.xerox.services.ClientEngine;
+import com.xerox.services.HubEngine;
+import com.xerox.services.LUPEngine;
+import com.xerox.services.RestEngine;
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
