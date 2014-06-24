@@ -64,8 +64,8 @@ public class LUP34 implements LUPEngine
      */
     private UriRef ANNOTATION_GRAPH_NAME = new UriRef("urn:x-localinstance:/fusepool/annotation.graph");
     private UriRef CONTENT_GRAPH_NAME = new UriRef("urn:x-localinstance:/content.graph");
-    private UriRef ID_GRAPH_NAME = new UriRef("urn:x-localinstance:/lup34/id.graph");
-    private MGraph idGraph;
+//    private UriRef ID_GRAPH_NAME = new UriRef("urn:x-localinstance:/lup34/id.graph");
+//    private MGraph idGraph;
     private MGraph annostore;
     private MGraph contentstore;
     
@@ -164,7 +164,7 @@ public class LUP34 implements LUPEngine
         // 1.) Accessing the AnnoStore
         annostore = tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
         contentstore = tcManager.getMGraph(CONTENT_GRAPH_NAME);
-        idGraph = tcManager.getMGraph(ID_GRAPH_NAME);
+//        idGraph = tcManager.getMGraph(ID_GRAPH_NAME);
         // 2.) Instanciating any listener, filter, delay and web access needed
         this.listener3_4 = new LUP34.Listener3_4();
         this.filter3_4 = new FilterTriple(
@@ -330,37 +330,37 @@ public class LUP34 implements LUPEngine
         /**
          * TODO: Do something with idGraph.
          */
-        log.info("saving data");
-        for (String docUri : docIDIndex.keySet()) {
-            idGraph.add(new TripleImpl(new UriRef(docUri),
-                    new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-                    new UriRef("http://fusepool.eu/ontologies/annostore#Document")));
-            idGraph.add(new TripleImpl(new UriRef(docUri),
-                    new UriRef("http://fusepool.eu/ontologies/annostore#hasId"),
-                    new PlainLiteralImpl(docUri)));
-        }
-        
+//        log.info("saving data");
+//        for (String docUri : docIDIndex.keySet()) {
+//            idGraph.add(new TripleImpl(new UriRef(docUri),
+//                    new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+//                    new UriRef("http://fusepool.eu/ontologies/annostore#Document")));
+//            idGraph.add(new TripleImpl(new UriRef(docUri),
+//                    new UriRef("http://fusepool.eu/ontologies/annostore#hasId"),
+//                    new PlainLiteralImpl(docUri)));
+//        }
+//        
     }
     
     public void load() {
-        log.info("loading data");
-        if (idGraph == null) {
-            log.info("No id graph, creating <" + ID_GRAPH_NAME.toString() + ">");
-            idGraph = (MGraph) tcManager.createGraph(ID_GRAPH_NAME, null);
-        } else {
-            if (docIDIndex == null)
-                docIDIndex = new HashMap<String, Integer>();
-            Iterator<Triple> itDoc = idGraph.filter(null, null, new UriRef("http://fusepool.eu/ontologies/annostore#Document"));
-            while (itDoc.hasNext()) {
-                Triple tripleDoc = itDoc.next();
-                Iterator<Triple> itIndex = idGraph.filter(tripleDoc.getSubject(), new UriRef("http://fusepool.eu/ontologies/annostore#hasId"), null);
-                while (itIndex.hasNext()) {
-                    Triple tripleIndex = itIndex.next();
-                    log.info("found: " + tripleDoc.getSubject().toString() + " - " + tripleIndex.getObject().toString());
-                    docIDIndex.put(tripleDoc.getSubject().toString(), Integer.parseInt(tripleIndex.getObject().toString()));
-                }
-            }
-        }
+//        log.info("loading data");
+//        if (idGraph == null) {
+//            log.info("No id graph, creating <" + ID_GRAPH_NAME.toString() + ">");
+//            idGraph = (MGraph) tcManager.createGraph(ID_GRAPH_NAME, null);
+//        } else {
+//            if (docIDIndex == null)
+//                docIDIndex = new HashMap<String, Integer>();
+//            Iterator<Triple> itDoc = idGraph.filter(null, null, new UriRef("http://fusepool.eu/ontologies/annostore#Document"));
+//            while (itDoc.hasNext()) {
+//                Triple tripleDoc = itDoc.next();
+//                Iterator<Triple> itIndex = idGraph.filter(tripleDoc.getSubject(), new UriRef("http://fusepool.eu/ontologies/annostore#hasId"), null);
+//                while (itIndex.hasNext()) {
+//                    Triple tripleIndex = itIndex.next();
+//                    log.info("found: " + tripleDoc.getSubject().toString() + " - " + tripleIndex.getObject().toString());
+//                    docIDIndex.put(tripleDoc.getSubject().toString(), Integer.parseInt(tripleIndex.getObject().toString()));
+//                }
+//            }
+//        }
     }
     
 }
