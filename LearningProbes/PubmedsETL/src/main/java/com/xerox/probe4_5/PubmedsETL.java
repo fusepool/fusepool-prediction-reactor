@@ -74,6 +74,7 @@ public class PubmedsETL
     @Reference
     private Serializer serializer;
     private File relationsFilePubmed;
+    private File layoutRelationsFilePubmed;
     
     
     private void ETLmodReto(Iterator<Triple> it, OutputStream relationsWriter) throws IOException {
@@ -95,7 +96,21 @@ public class PubmedsETL
         serializer.serialize(relationsWriter, resultGraph, SupportedFormat.TURTLE);
     }
     
-    
+    private void ETLLayout(Iterator<Triple> it, BufferedWriter relationsWriter) throws IOException {
+        while (it.hasNext()) {
+            Triple myTriple = it.next();
+            log.info("ETLLAYOUT : " + myTriple.getSubject().toString());
+//            relationsWriter.write(myTriple.getSubject() + " " + myTriple.getPredicate() + " " + myTriple.getObject() + " .\n");
+//            Iterator<Triple> itDocuments = contentstore.filter((NonLiteral)myTriple.getSubject(), null, null);
+//            while (itDocuments.hasNext()) {
+//                Triple newTriple = itDocuments.next();
+//                String docUri = newTriple.getSubject().toString();
+//                String predicate = newTriple.getPredicate().toString();
+//                String object = newTriple.getObject().toString();
+//                relationsWriter.write(docUri + " " + predicate + " " + object + " .\n");
+//            }
+        }
+    }
     private void ETL(Iterator<Triple> it, BufferedWriter relationsWriter) throws IOException {
             while (it.hasNext()) {
                 try {
@@ -264,7 +279,7 @@ public class PubmedsETL
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<InputStream>() {
                 public InputStream run() throws Exception {
-                    return new FileInputStream(relationsFilePubmed);
+                    return new FileInputStream(layoutRelationsFilePubmed);
                 }
             });
         } catch (PrivilegedActionException ex) {
@@ -284,21 +299,25 @@ public class PubmedsETL
         contentstore = tcManager.getMGraph(CONTENTSTORE_GRAPH_NAME);
         // 2.) Create files
         BufferedWriter relationsPubmedsWriter = null;
+        BufferedWriter layoutRelationsFileWriter = null;
         try {
             // Create dump files for (entities / relations)
             relationsFilePubmed = bc.getDataFile("pubmed_RELATIONS.ttl");
+            layoutRelationsFilePubmed = bc.getDataFile("layoutPubmed_RELATIONS.ttl");
 
             // This will output the full path where the file will be written to...
             log.info(relationsFilePubmed.getCanonicalPath());
+            log.info(layoutRelationsFilePubmed.getCanonicalPath());
             
             // 3.) ETL
             relationsPubmedsWriter = new BufferedWriter(new FileWriter(relationsFilePubmed));
+            layoutRelationsFileWriter = new BufferedWriter(new FileWriter(layoutRelationsFilePubmed));
             
             // 3.2) PubMed ETL
             Iterator<Triple> itPubMed = contentstore.filter(null,
                     new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
                     new UriRef("http://purl.org/ontology/bibo/Document"));
-            this.ETL(itPubMed, relationsPubmedsWriter);
+            this.ETLLayout(itPubMed, layoutRelationsFileWriter);
             
             
 //            // 3.1) Patent ETL
@@ -314,6 +333,7 @@ public class PubmedsETL
             try {
                 // Close the writer regardless of what happens...
                 relationsPubmedsWriter.close();
+                layoutRelationsFileWriter.close();
             } catch (Exception e) {
             }
         }

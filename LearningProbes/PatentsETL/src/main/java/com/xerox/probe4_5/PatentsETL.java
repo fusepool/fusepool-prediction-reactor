@@ -77,6 +77,7 @@ public class PatentsETL
     @Reference
     private Serializer serializer;
     private File relationsFilePatents;
+    private File layoutRelationsFilePatents;
     
     
     private void ETLmodReto(Iterator<Triple> it, OutputStream relationsWriter) throws IOException {
@@ -98,6 +99,20 @@ public class PatentsETL
         serializer.serialize(relationsWriter, resultGraph, SupportedFormat.TURTLE);
     }
     
+    private void ETLLayout(Iterator<Triple> it, BufferedWriter relationsWriter) throws IOException {
+        while (it.hasNext()) {
+            Triple myTriple = it.next();
+            relationsWriter.write(myTriple.getSubject() + " " + myTriple.getPredicate() + " " + myTriple.getObject() + " .\n");
+            Iterator<Triple> itDocuments = contentstore.filter((NonLiteral)myTriple.getSubject(), null, null);
+            while (itDocuments.hasNext()) {
+                Triple newTriple = itDocuments.next();
+                String docUri = newTriple.getSubject().toString();
+                String predicate = newTriple.getPredicate().toString();
+                String object = newTriple.getObject().toString();
+                relationsWriter.write(docUri + " " + predicate + " " + object + " .\n");
+            }
+        }
+    }
     
     private void ETL(Iterator<Triple> it, BufferedWriter relationsWriter) throws IOException {
             while (it.hasNext()) {
@@ -257,7 +272,8 @@ public class PatentsETL
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<InputStream>() {
                 public InputStream run() throws Exception {
-                    return new FileInputStream(relationsFilePatents);
+//                    return new FileInputStream(relationsFilePatents);
+                    return new FileInputStream(layoutRelationsFilePatents);
                 }
             });
         } catch (PrivilegedActionException ex) {
@@ -277,27 +293,33 @@ public class PatentsETL
         contentstore = tcManager.getMGraph(CONTENTSTORE_GRAPH_NAME);
         // 2.) Create files
         BufferedWriter relationsPatentsWriter = null;
+        BufferedWriter layoutRelationsPatentsWriter = null;
         try {
             // Create dump files for (entities / relations)
             relationsFilePatents = bc.getDataFile("patent_RELATIONS.ttl");
+            layoutRelationsFilePatents = bc.getDataFile("layoutPatent_RELATIONS.ttl");
 
             // This will output the full path where the file will be written to...
             log.info(relationsFilePatents.getCanonicalPath());
+            log.info(layoutRelationsFilePatents.getCanonicalPath());
             
             // 3.) ETL
             relationsPatentsWriter = new BufferedWriter(new FileWriter(relationsFilePatents));
+            layoutRelationsPatentsWriter = new BufferedWriter(new FileWriter(layoutRelationsFilePatents));
             
             // 3.1) Patent ETL
             Iterator<Triple> itPatent = contentstore.filter(null,
                     new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
                     new UriRef("http://www.patexpert.org/ontologies/pmo.owl#PatentPublication"));
-            this.ETL(itPatent, relationsPatentsWriter);            
+//            this.ETL(itPatent, relationsPatentsWriter);
+            this.ETLLayout(itPatent, layoutRelationsPatentsWriter);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             try {
                 // Close the writer regardless of what happens...
                 relationsPatentsWriter.close();
+                layoutRelationsPatentsWriter.close();
             } catch (Exception e) {
             }
         }
