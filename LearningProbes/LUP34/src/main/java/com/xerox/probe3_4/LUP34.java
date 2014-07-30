@@ -4,14 +4,10 @@ import com.xerox.services.LUPEngine;
 import com.xerox.services.ClientEngine;
 import com.xerox.services.HubEngine;
 import com.xerox.services.RestEngine;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Iterator;
 
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.NonLiteral;
 import org.apache.clerezza.rdf.core.Resource;
@@ -26,6 +22,8 @@ import org.apache.clerezza.rdf.core.event.GraphListener;
 import org.codehaus.jettison.json.JSONObject;
 
 import org.apache.clerezza.rdf.core.event.FilterTriple;
+import org.apache.clerezza.rdf.core.impl.PlainLiteralImpl;
+import org.apache.clerezza.rdf.core.impl.TripleImpl;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -66,6 +64,8 @@ public class LUP34 implements LUPEngine
      */
     private UriRef ANNOTATION_GRAPH_NAME = new UriRef("urn:x-localinstance:/fusepool/annotation.graph");
     private UriRef CONTENT_GRAPH_NAME = new UriRef("urn:x-localinstance:/content.graph");
+//    private UriRef ID_GRAPH_NAME = new UriRef("urn:x-localinstance:/lup34/id.graph");
+//    private MGraph idGraph;
     private MGraph annostore;
     private MGraph contentstore;
     
@@ -158,10 +158,13 @@ public class LUP34 implements LUPEngine
     
     @Activate
     public void activate() {
-        log.info("Activation");
+        log.info("Activation, loading data...");
+        this.load();
+        log.info("Done !");
         // 1.) Accessing the AnnoStore
         annostore = tcManager.getMGraph(ANNOTATION_GRAPH_NAME);
         contentstore = tcManager.getMGraph(CONTENT_GRAPH_NAME);
+//        idGraph = tcManager.getMGraph(ID_GRAPH_NAME);
         // 2.) Instanciating any listener, filter, delay and web access needed
         this.listener3_4 = new LUP34.Listener3_4();
         this.filter3_4 = new FilterTriple(
@@ -323,7 +326,41 @@ public class LUP34 implements LUPEngine
     /**
      * We have to save/load the docID index
      */
-    public void save() {}
-    public void load() {}
+    public void save() {
+        /**
+         * TODO: Do something with idGraph.
+         */
+//        log.info("saving data");
+//        for (String docUri : docIDIndex.keySet()) {
+//            idGraph.add(new TripleImpl(new UriRef(docUri),
+//                    new UriRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+//                    new UriRef("http://fusepool.eu/ontologies/annostore#Document")));
+//            idGraph.add(new TripleImpl(new UriRef(docUri),
+//                    new UriRef("http://fusepool.eu/ontologies/annostore#hasId"),
+//                    new PlainLiteralImpl(docUri)));
+//        }
+//        
+    }
+    
+    public void load() {
+//        log.info("loading data");
+//        if (idGraph == null) {
+//            log.info("No id graph, creating <" + ID_GRAPH_NAME.toString() + ">");
+//            idGraph = (MGraph) tcManager.createGraph(ID_GRAPH_NAME, null);
+//        } else {
+//            if (docIDIndex == null)
+//                docIDIndex = new HashMap<String, Integer>();
+//            Iterator<Triple> itDoc = idGraph.filter(null, null, new UriRef("http://fusepool.eu/ontologies/annostore#Document"));
+//            while (itDoc.hasNext()) {
+//                Triple tripleDoc = itDoc.next();
+//                Iterator<Triple> itIndex = idGraph.filter(tripleDoc.getSubject(), new UriRef("http://fusepool.eu/ontologies/annostore#hasId"), null);
+//                while (itIndex.hasNext()) {
+//                    Triple tripleIndex = itIndex.next();
+//                    log.info("found: " + tripleDoc.getSubject().toString() + " - " + tripleIndex.getObject().toString());
+//                    docIDIndex.put(tripleDoc.getSubject().toString(), Integer.parseInt(tripleIndex.getObject().toString()));
+//                }
+//            }
+//        }
+    }
     
 }
