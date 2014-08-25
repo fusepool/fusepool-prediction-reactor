@@ -5,7 +5,6 @@ import com.xerox.services.HubEngine;
 import com.xerox.services.LUPEngine;
 import com.xerox.services.RestEngine;
 import java.io.ByteArrayOutputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 import eu.fusepool.ecs.ontologies.ECS;
@@ -13,9 +12,6 @@ import java.util.ArrayList;
 import org.apache.clerezza.rdf.core.BNode;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.apache.clerezza.rdf.core.Literal;
 
 import org.apache.clerezza.rdf.core.MGraph;
 import org.apache.clerezza.rdf.core.NonLiteral;
@@ -190,6 +186,7 @@ public class LUP45 implements LUPEngine
             log.info("peopleList size: " + peopleList.size());
             for (UriRef foundResource: peopleList) {
                 //                final UriRef foundResource = new UriRef("http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810");
+                log.info("getting local of: " + foundResource);
                 final GraphNode peopleNode = graphNodeProvider.getLocal(foundResource);
                 log.info("graphNodeProvider.getLocal(): " + peopleNode.toString());
                 
@@ -406,16 +403,6 @@ public class LUP45 implements LUPEngine
                         Resource patentResource = itPatentsResources.next().getObject();
                         log.info("found patent: " + patentResource.toString());
                         GraphNode patentsNode = graphNodeProvider.getLocal((UriRef)patentResource);
-
-                        /**
-                         * Reto's code
-                         */
-    //                    Iterator<Literal> itLiteral = patentsNode.getObjectNodes(new UriRef("http://www.patexpert.org/ontologies/pmo.owl#inventorOf")).next().getLiterals(new UriRef("http://purl.org/dc/terms/title"));
-    //                    while (itLiteral.hasNext()) {
-    //                        Literal titleLiteral = itLiteral.next();
-    //                        log.info("RETO'S CODE: " + titleLiteral.toString());
-    //                    }
-
                         resultGraph.addAll(patentsNode.getNodeContext());
 
                     }
@@ -439,94 +426,6 @@ public class LUP45 implements LUPEngine
             }
             
             return prediction;
-            
-//            String search = params.get("search");
-//            Integer offset = Integer.parseInt(params.get("offset"));
-//            Integer maxFacets = Integer.parseInt(params.get("maxFacets"));
-//            Integer items = Integer.parseInt(params.get("items"));
-//            
-//            HashMap<String, String> paramsOpenXerox = new HashMap<String, String>();
-//            paramsOpenXerox.put("query", search);
-//            JSONObject jsonResultObject = new JSONObject(clientPull.doPost("https://psparql.services.open.xerox.com/getauthors/", paramsOpenXerox));
-//            JSONArray jsonResultArray = jsonResultObject.getJSONArray("AuthorList");
-//            log.info(jsonResultObject.toString());
-//            /**
-//             * ... Send things and get back <LIST OF URIS> from OpenXerox
-//             * TESTING WITH : <http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810>
-//             * AND :<http://fusepool.info/id/688d7156-09d7-452f-9c64-4ee9676d34bb>
-//             */
-//            ArrayList<UriRef> peopleList = new ArrayList<UriRef>();
-//            for (Integer index = 0 ; index < jsonResultArray.length() ; index++) {
-//                UriRef newUri = new UriRef(jsonResultArray.getString(index).substring(1, jsonResultArray.getString(index).length()-1));
-//                log.info("looking for people with uri: " + newUri.toString());
-//                peopleList.add(newUri);
-//            }
-//            /**
-//             * Test persons
-//             */
-////            peopleList.add(new UriRef("http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810"));
-////            peopleList.add(new UriRef("http://fusepool.info/id/688d7156-09d7-452f-9c64-4ee9676d34bb"));
-//            
-//            final Integer nbResource = peopleList.size();
-//            MGraph resultGraph = new SimpleMGraph();
-//            NonLiteral listResource = new BNode();
-//            RdfList contentList = new RdfList(listResource, resultGraph);
-//            log.info("peopleList size: " + peopleList.size());
-//            for (UriRef foundResource: peopleList) {
-////                final UriRef foundResource = new UriRef("http://fusepool.info/id/1c396582-16e9-4bdf-b497-dc6cbe4a9810");
-//                final GraphNode node = graphNodeProvider.getLocal(foundResource);
-//                log.info("graphNodeProvider.getLocal(): " + node.toString());
-//                resultGraph.addAll(node.getNodeContext());
-//
-//                Iterator<Triple> itAddressResources =
-//                        resultGraph.filter(foundResource, new UriRef("http://schema.org/address"), null);
-//                log.info("trying to find some address...");
-//                while (itAddressResources.hasNext()) {
-//                    Resource addressResource = itAddressResources.next().getObject();
-//                    log.info("found address: " + addressResource.toString());
-//                    GraphNode addressNode = graphNodeProvider.getLocal((UriRef)addressResource);
-//                    resultGraph.addAll(addressNode.getNodeContext());
-//                }
-//                
-//                Iterator<Triple> itPatentsResources =
-//                        resultGraph.filter(foundResource, new UriRef("http://www.patexpert.org/ontologies/pmo.owl#inventorOf"), null);
-//                log.info("trying to find some patents...");
-//                while (itPatentsResources.hasNext()) {
-//                    Resource patentResource = itPatentsResources.next().getObject();
-//                    log.info("found patent: " + patentResource.toString());
-//                    GraphNode patentsNode = graphNodeProvider.getLocal((UriRef)patentResource);
-//
-//                    /**
-//                     * Reto's code
-//                     */
-////                    Iterator<Literal> itLiteral = patentsNode.getObjectNodes(new UriRef("http://www.patexpert.org/ontologies/pmo.owl#inventorOf")).next().getLiterals(new UriRef("http://purl.org/dc/terms/title"));
-////                    while (itLiteral.hasNext()) {
-////                        Literal titleLiteral = itLiteral.next();
-////                        log.info("RETO'S CODE: " + titleLiteral.toString());
-////                    }
-//                    
-//                    resultGraph.addAll(patentsNode.getNodeContext());
-//                        
-//                }
-//                //Adding Facets for organizations
-//                
-//                contentList.add(foundResource);
-//
-//            }
-//            GraphNode contentStoreView = new GraphNode(new UriRef("http://platform.fusepool.info/ecs/?search="+search+"&offset="+offset+"&maxFacets="+maxFacets+"&items="+items), resultGraph);
-//            contentStoreView.addProperty(RDF.type, ECS.ContentStoreView);
-//            contentStoreView.addPropertyValue(ECS.contentsCount, nbResource);
-//            contentStoreView.addProperty(ECS.contents, listResource);
-////            contentStoreView.addProperty(ECS.facet, listResource);
-//            
-//            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//            serializer.serialize(baos, resultGraph, SupportedFormat.TURTLE);
-//            
-//            log.info("\n" +baos.toString());
-//            
-//            
-//            
-//            return new String(baos.toByteArray(), "utf-8");
         } catch (Exception ex) {
             log.error("Error", ex);
             return "__error__";
